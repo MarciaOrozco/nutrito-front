@@ -45,6 +45,7 @@ export const mockNutritionists = [
         date: '2024-07-03',
       },
     ],
+    mockSlots: ['16:00', '16:30', '17:00', '17:30'],
   },
   {
     id: '2',
@@ -83,6 +84,7 @@ export const mockNutritionists = [
         date: '2024-05-21',
       },
     ],
+    mockSlots: ['08:30', '09:00', '09:30'],
   },
   {
     id: '3',
@@ -113,6 +115,7 @@ export const mockNutritionists = [
       },
     ],
     reviews: [],
+    mockSlots: ['14:00', '14:30', '15:00'],
   },
 ];
 

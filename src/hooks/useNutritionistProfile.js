@@ -29,6 +29,16 @@ const mapReviews = (items) =>
     date: item.date ?? item.fecha ?? null,
   }));
 
+const mapPaymentMethods = (items) =>
+  (items ?? []).map((item, index) => ({
+    id:
+      item.id ??
+      item.metodo_pago_id ??
+      globalThis.crypto?.randomUUID?.() ??
+      `payment-${index}`,
+    name: item.name ?? item.nombre ?? 'Método disponible',
+  }));
+
 const mapProfileFromResponse = (payload) => {
   if (!payload) return null;
 
@@ -93,6 +103,7 @@ const mapProfileFromResponse = (payload) => {
     education: mapEducation(base.educacion ?? base.education ?? []),
     reviews: mapReviews(base.resenas ?? base.reviews ?? []),
     modalities: base.modalidades ?? base.modalities ?? [],
+    paymentMethods: mapPaymentMethods(base.metodosPago ?? base.paymentMethods ?? []),
   };
 };
 

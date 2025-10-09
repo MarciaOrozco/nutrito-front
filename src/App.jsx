@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import SearchPage from './pages/SearchPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import SchedulePage from './pages/SchedulePage.jsx';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/" element={<Navigate to="/buscar" replace />} />
             <Route path="/buscar" element={<SearchPage />} />
             <Route path="/perfil/:id" element={<ProfilePage />} />
+            <Route path="/agendar/:nutricionistaId" element={<SchedulePage />} />
           </Routes>
         </main>
       </div>

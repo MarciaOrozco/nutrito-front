@@ -16,8 +16,7 @@ export default function ProfilePage() {
   }, [id, fetchProfile]);
 
   const handleSchedule = () => {
-    // Placeholder hasta implementar flujo de agenda.
-    console.info(`Agendar consulta con nutricionista #${id}`);
+    navigate(`/agendar/${id}`);
   };
 
   const renderHeaderSkeleton = () => (
@@ -130,6 +129,23 @@ export default function ProfilePage() {
                 </ul>
               ) : (
                 <p>No se registraron especialidades asociadas.</p>
+              )}
+            </ProfileSection>
+
+            <ProfileSection title="Métodos de pago aceptados">
+              {profile.paymentMethods?.length ? (
+                <ul className="flex flex-col gap-2">
+                  {profile.paymentMethods.map((method) => (
+                    <li
+                      key={method.id}
+                      className="rounded-full border border-sand px-4 py-2 text-sm text-bark/80"
+                    >
+                      {method.name}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Este profesional acordará el método de pago durante la consulta.</p>
               )}
             </ProfileSection>
 

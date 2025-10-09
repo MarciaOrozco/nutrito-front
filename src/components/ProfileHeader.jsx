@@ -3,7 +3,12 @@ import RatingStars from './RatingStars.jsx';
 const placeholderPhoto =
   'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=facearea&w=240&h=240&q=80';
 
-export default function ProfileHeader({ profile, onSchedule }) {
+export default function ProfileHeader({
+  profile,
+  onSchedule,
+  actionLabel = 'Agendar consulta',
+  showAction = true,
+}) {
   if (!profile) return null;
 
   const {
@@ -43,13 +48,15 @@ export default function ProfileHeader({ profile, onSchedule }) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onSchedule}
-        className="w-full rounded-xl border border-clay px-6 py-3 text-base font-semibold text-clay transition hover:bg-clay hover:text-white lg:w-auto"
-      >
-        Agendar consulta
-      </button>
+      {showAction ? (
+        <button
+          type="button"
+          onClick={onSchedule}
+          className="w-full rounded-xl border border-clay px-6 py-3 text-base font-semibold text-clay transition hover:bg-clay hover:text-white lg:w-auto"
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </section>
   );
 }
