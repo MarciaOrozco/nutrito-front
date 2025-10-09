@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import ProfileHeader from '../components/ProfileHeader.jsx';
 import ProfileSection from '../components/ProfileSection.jsx';
 import useNutritionistProfile from '../hooks/useNutritionistProfile.js';
 import useAvailability from '../hooks/useAvailability.js';
 import useCreateAppointment from '../hooks/useCreateAppointment.js';
+import useRescheduleAppointment from '../hooks/useRescheduleAppointment.js';
 import useLinkPatientProfessional from '../hooks/useLinkPatientProfessional.js';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -66,6 +67,10 @@ const buildPaymentOptions = (paymentMethods = [], insuranceProviders = []) => {
 export default function SchedulePage() {
   const { nutricionistaId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const existingTurnoId = searchParams.get('turnoId');
+  const isReschedule = Boolean(existingTurnoId);
 
   const {
     profile,
@@ -89,6 +94,12 @@ export default function SchedulePage() {
     resetError: resetBookingError,
   } = useCreateAppointment();
   const {
+    reschedule,
+    loading: rescheduleLoading,
+    error: rescheduleError,
+    resetError: resetRescheduleError,
+  } = useRescheduleAppointment();
+  const {
     link: linkPatientProfessional,
     error: linkError,
     resetError: resetLinkError,
@@ -101,6 +112,8 @@ export default function SchedulePage() {
   const [selectedPaymentOptionId, setSelectedPaymentOptionId] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationData, setConfirmationData] = useState(null);
+  const prefillDoneRef = useRef(false);
+  const initialDateRef = useRef(null);
 
   useEffect(() => {
     fetchProfile(nutricionistaId);
@@ -112,8 +125,13 @@ export default function SchedulePage() {
   }, [nutricionistaId, selectedDate, fetchAvailability]);
 
   useEffect(() => {
+    if (isReschedule) {
+      if (initialDateRef.current && selectedDate === initialDateRef.current) {
+        return;
+      }
+    }
     setSelectedTime('');
-  }, [selectedDate]);
+  }, [selectedDate, isReschedule]);
 
   useEffect(() => {
     if (selectedTime && !slots.some((slot) => slot.time === selectedTime)) {
@@ -131,6 +149,36 @@ export default function SchedulePage() {
       setSelectedLocationId(locationOptions[0].id);
     }
   }, [locationOptions, selectedLocationId]);
+
+  useEffect(() => {
+    if (!isReschedule || prefillDoneRef.current) return;
+    const turno = location.state?.turno;
+    if (!turno) return;
+
+    if (turno.fecha) {
+      initialDateRef.current = turno.fecha;
+      setSelectedDate(turno.fecha);
+    }
+
+    if (locationOptions.length) {
+      const matchById = locationOptions.find((option) =>
+        turno.modalidadId ? Number(option.modalidadId) === Number(turno.modalidadId) : false,
+      );
+      const match =
+        matchById ??
+        locationOptions.find((option) => option.label === turno.modalidad) ??
+        null;
+      if (match) {
+        setSelectedLocationId(match.id);
+      }
+    }
+
+    if (turno.hora) {
+      setSelectedTime(turno.hora.slice(0, 5));
+    }
+
+    prefillDoneRef.current = true;
+  }, [isReschedule, location.state, locationOptions]);
 
   const selectedLocation =
     locationOptions.find((option) => option.id === selectedLocationId) ?? null;
@@ -154,10 +202,12 @@ export default function SchedulePage() {
     paymentOptions.find((option) => option.id === selectedPaymentOptionId) ??
     null;
 
+  const actionLoading = bookingLoading || rescheduleLoading;
+
   const canContinueSchedule =
-    Boolean(selectedLocation && selectedDate && selectedTime) && !bookingLoading;
+    Boolean(selectedLocation && selectedDate && selectedTime) && !actionLoading;
   const canConfirmPayment =
-    Boolean(selectedPaymentOption?.methodId) && !bookingLoading;
+    Boolean(selectedPaymentOption?.methodId) && !actionLoading;
 
   const handleBack = () => {
     if (step === 'payment') {
@@ -175,11 +225,15 @@ export default function SchedulePage() {
     setConfirmationData(null);
     resetBookingError();
     resetLinkError();
+    resetRescheduleError();
+    initialDateRef.current = null;
+    prefillDoneRef.current = false;
   };
 
   const handleChangePayment = (value) => {
     resetBookingError();
     resetLinkError();
+    resetRescheduleError();
     setSelectedPaymentOptionId(value);
   };
 
@@ -205,25 +259,44 @@ export default function SchedulePage() {
         metodoPagoId: selectedPaymentOption.methodId,
       };
 
-      const result = await createAppointment(payload);
-
-      if (result.success) {
-        const linkResult = await linkPatientProfessional({
+      if (isReschedule && existingTurnoId) {
+        const result = await reschedule({
+          turnoId: Number(existingTurnoId),
           pacienteId,
-          nutricionistaId: Number(nutricionistaId),
+          fecha: selectedDate,
+          hora: selectedTime,
         });
 
-        setConfirmationData({
-          location: selectedLocation?.label ?? 'Sin definir',
-          date: selectedDate,
-          time: selectedTime,
-          payment: selectedPaymentOption.label,
-        });
-        if (!linkResult.success) {
-          console.error('Error al vincular paciente y profesional:', linkResult.error);
+        if (result.success) {
+          setConfirmationData({
+            location: selectedLocation?.label ?? 'Sin definir',
+            date: selectedDate,
+            time: selectedTime,
+            payment: selectedPaymentOption.label,
+          });
+          setShowConfirmation(true);
         }
+      } else {
+        const result = await createAppointment(payload);
 
-        setShowConfirmation(true);
+        if (result.success) {
+          const linkResult = await linkPatientProfessional({
+            pacienteId,
+            nutricionistaId: Number(nutricionistaId),
+          });
+
+          setConfirmationData({
+            location: selectedLocation?.label ?? 'Sin definir',
+            date: selectedDate,
+            time: selectedTime,
+            payment: selectedPaymentOption.label,
+          });
+          if (!linkResult.success) {
+            console.error('Error al vincular paciente y profesional:', linkResult.error);
+          }
+
+          setShowConfirmation(true);
+        }
       }
     }
   };
@@ -272,9 +345,13 @@ export default function SchedulePage() {
 
   const renderScheduleStep = () => (
     <div className="rounded-3xl bg-white p-6 shadow-soft">
-      <h2 className="text-xl font-semibold text-bark">Agendar consulta con nutricionista</h2>
+      <h2 className="text-xl font-semibold text-bark">
+        {isReschedule ? 'Reprogramar consulta' : 'Agendar consulta con nutricionista'}
+      </h2>
       <p className="mt-2 text-sm text-bark/70">
-        Consulta las fechas y horarios disponibles para agendar tu cita.
+        {isReschedule
+          ? 'Actualiza el turno con el horario que mejor se adapte a tu agenda.'
+          : 'Consulta las fechas y horarios disponibles para agendar tu cita.'}
       </p>
 
       <div className="mt-6 flex flex-col gap-5">
@@ -344,7 +421,9 @@ export default function SchedulePage() {
     <div className="rounded-3xl bg-white p-6 shadow-soft">
       <h2 className="text-xl font-semibold text-bark">Elegir método de pago</h2>
       <p className="mt-2 text-sm text-bark/70">
-        Este profesional acepta los siguientes métodos. Selecciona uno para continuar.
+        {isReschedule
+          ? 'Podés mantener o actualizar la forma de pago para tu nueva fecha.'
+          : 'Este profesional acepta los siguientes métodos. Selecciona uno para continuar.'}
       </p>
 
       {profile?.insuranceProviders?.length ? (
@@ -402,15 +481,20 @@ export default function SchedulePage() {
           ) : null}
         </label>
 
-        {bookingError ? (
+        {!isReschedule && bookingError ? (
           <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             {bookingError}
           </p>
         ) : null}
-        {linkError ? (
+        {!isReschedule && linkError ? (
           <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             No se pudo guardar el vínculo paciente–profesional. Podrás intentarlo nuevamente más
             tarde.
+          </p>
+        ) : null}
+        {isReschedule && rescheduleError ? (
+          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            {rescheduleError}
           </p>
         ) : null}
       </div>
@@ -429,19 +513,27 @@ export default function SchedulePage() {
           disabled={!canConfirmPayment}
           className="rounded-full bg-clay px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
-          {bookingLoading ? 'Guardando...' : 'Confirmar turno'}
+          {actionLoading
+            ? 'Guardando...'
+            : isReschedule
+              ? 'Guardar cambios'
+              : 'Confirmar turno'}
         </button>
       </div>
     </div>
   );
 
+  const confirmationTitle = isReschedule
+    ? '¡Turno reprogramado con éxito!'
+    : '¡Turno agendado con éxito!';
+  const confirmationDescription = isReschedule
+    ? 'Actualizamos la información de tu turno. Recibirás la confirmación en tu correo.'
+    : 'Guardamos tu selección. Podrás gestionar el turno desde tu panel de paciente en la próxima iteración.';
+
   const renderConfirmation = () => (
     <div className="rounded-3xl bg-white p-6 text-center shadow-soft">
-      <h2 className="text-xl font-semibold text-bark">¡Turno agendado con éxito!</h2>
-      <p className="mt-4 text-sm text-bark/70">
-        Guardamos tu selección. Podrás gestionar el turno desde tu panel de paciente en la próxima
-        iteración.
-      </p>
+      <h2 className="text-xl font-semibold text-bark">{confirmationTitle}</h2>
+      <p className="mt-4 text-sm text-bark/70">{confirmationDescription}</p>
 
       {confirmationData ? (
         <div className="mt-6 text-sm text-bark/80">
@@ -495,9 +587,9 @@ export default function SchedulePage() {
         >
           <span aria-hidden="true">←</span>
           Volver
-        </button>
-        <p className="text-xs uppercase tracking-widest text-bark/60">
-          CU-001-003 Agendar turno
+      </button>
+      <p className="text-xs uppercase tracking-widest text-bark/60">
+          {isReschedule ? 'CU-001-003 Reprogramar turno' : 'CU-001-003 Agendar turno'}
         </p>
       </div>
 

@@ -1,7 +1,8 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
 import SearchPage from './pages/SearchPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SchedulePage from './pages/SchedulePage.jsx';
+import PatientProfilePage from './pages/PatientProfilePage.jsx';
 
 function App() {
   return (
@@ -18,9 +19,12 @@ function App() {
                 <h1 className="font-display text-2xl text-bark">Cuidando tu alimentación</h1>
               </div>
             </div>
-            <button className="rounded-full border border-clay px-5 py-2 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white">
+            <Link
+              to="/mi-perfil"
+              className="rounded-full border border-clay px-5 py-2 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white"
+            >
               Mi perfil
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -30,6 +34,7 @@ function App() {
             <Route path="/buscar" element={<SearchPage />} />
             <Route path="/perfil/:id" element={<ProfilePage />} />
             <Route path="/agendar/:nutricionistaId" element={<SchedulePage />} />
+            <Route path="/mi-perfil" element={<PatientProfilePage />} />
           </Routes>
         </main>
       </div>
