@@ -1,0 +1,78 @@
+function StarIcon({ filled }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`h-5 w-5 ${filled ? 'text-clay' : 'text-sand'}`}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path d="M10 1.5 12.472 7l5.528.58-4 3.88.944 5.54L10 14.8l-4.944 2.2.944-5.54-4-3.88L7.528 7z" />
+    </svg>
+  );
+}
+
+const placeholderPhoto =
+  'https://images.unsplash.com/photo-1544723795-3fb0b39d26c5?auto=format&fit=facearea&w=240&h=240&q=80';
+
+export default function NutritionistCard({ nutritionist }) {
+  const { name, title, rating = 0, reviewCount = 0, specialties = [], modalities = [], photoUrl } =
+    nutritionist;
+  const roundedRating = Math.round(rating);
+  const emptyStars = 5 - roundedRating;
+
+  return (
+    <article className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg md:flex-row md:items-center md:gap-6">
+      <img
+        src={photoUrl || placeholderPhoto}
+        alt={`Foto de ${name}`}
+        className="h-20 w-20 flex-shrink-0 rounded-full object-cover shadow-inner ring-2 ring-sand/60"
+        loading="lazy"
+      />
+
+      <div className="flex flex-1 flex-col gap-3">
+        <div>
+          <h3 className="text-xl font-semibold text-bark">{name}</h3>
+          <p className="text-sm text-bark/70">
+            {title || 'Nutricionista certificado/a'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-bark/80">
+          <div className="flex items-center gap-1">
+            {Array.from({ length: roundedRating }, (_, index) => (
+              <StarIcon key={`full-${index}`} filled />
+            ))}
+            {Array.from({ length: emptyStars }, (_, index) => (
+              <StarIcon key={`empty-${index}`} filled={false} />
+            ))}
+          </div>
+          <span>{rating.toFixed(1)}</span>
+          <span className="text-bark/60">{reviewCount} opiniones</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {specialties.map((spec) => (
+            <span
+              key={spec}
+              className="rounded-full bg-sand px-3 py-1 text-xs font-medium text-bark/80"
+            >
+              {spec}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2 text-xs text-bark/60">
+          {modalities.map((modality) => (
+            <span key={modality} className="rounded-full border border-sand px-2 py-0.5">
+              {modality}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <button className="w-full rounded-xl border border-clay px-5 py-3 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white md:w-auto">
+        Ver perfil
+      </button>
+    </article>
+  );
+}
