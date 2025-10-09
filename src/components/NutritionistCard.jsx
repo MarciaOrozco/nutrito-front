@@ -1,11 +1,18 @@
-import RatingStars from './RatingStars.jsx';
+import RatingStars from "./RatingStars.jsx";
 
 const placeholderPhoto =
-  'https://images.unsplash.com/photo-1544723795-3fb0b39d26c5?auto=format&fit=facearea&w=240&h=240&q=80';
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTc4zvZXFnRMQoRBx94eBCvl7_hKz_eLv7vg&s";
 
 export default function NutritionistCard({ nutritionist, onViewProfile }) {
-  const { name, title, rating = 0, reviewCount = 0, specialties = [], modalities = [], photoUrl } =
-    nutritionist;
+  const {
+    name,
+    title,
+    rating = 0,
+    reviewCount = 0,
+    specialties = [],
+    modalities = [],
+    photoUrl,
+  } = nutritionist;
 
   const handleClick = () => {
     if (onViewProfile) {
@@ -26,7 +33,7 @@ export default function NutritionistCard({ nutritionist, onViewProfile }) {
         <div>
           <h3 className="text-xl font-semibold text-bark">{name}</h3>
           <p className="text-sm text-bark/70">
-            {title || 'Nutricionista certificado/a'}
+            {title || "Nutricionista certificado/a"}
           </p>
         </div>
 
@@ -50,14 +57,17 @@ export default function NutritionistCard({ nutritionist, onViewProfile }) {
         <div className="flex flex-wrap gap-2 text-xs text-bark/60">
           {modalities.map((modality) => {
             const label =
-              typeof modality === 'string'
+              typeof modality === "string"
                 ? modality
-                : modality.name ?? modality.nombre ?? '';
+                : modality.name ?? modality.nombre ?? "";
 
             if (!label) return null;
 
             return (
-              <span key={label} className="rounded-full border border-sand px-2 py-0.5">
+              <span
+                key={label}
+                className="rounded-full border border-sand px-2 py-0.5"
+              >
                 {label}
               </span>
             );

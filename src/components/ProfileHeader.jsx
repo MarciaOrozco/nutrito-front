@@ -1,12 +1,12 @@
-import RatingStars from './RatingStars.jsx';
+import RatingStars from "./RatingStars.jsx";
 
 const placeholderPhoto =
-  'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=facearea&w=240&h=240&q=80';
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTTc4zvZXFnRMQoRBx94eBCvl7_hKz_eLv7vg&s";
 
 export default function ProfileHeader({
   profile,
   onSchedule,
-  actionLabel = 'Agendar consulta',
+  actionLabel = "Agendar consulta",
   showAction = true,
 }) {
   if (!profile) return null;
@@ -34,10 +34,12 @@ export default function ProfileHeader({
         <div className="flex flex-col gap-2">
           <div>
             <h2 className="text-2xl font-semibold text-bark">{name}</h2>
-            <p className="text-sm text-bark/70">{title || 'Nutricionista en Nutrito'}</p>
+            <p className="text-sm text-bark/70">
+              {title || "Nutricionista en Nutrito"}
+            </p>
           </div>
           <p className="text-sm font-medium uppercase tracking-wide text-clay">
-            {mainSpecialty ?? 'Nutrición integral'}
+            {mainSpecialty ?? "Nutrición integral"}
           </p>
 
           <div className="flex flex-wrap items-center gap-2 text-sm text-bark/80">
