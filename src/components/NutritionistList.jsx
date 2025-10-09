@@ -1,6 +1,6 @@
 import NutritionistCard from './NutritionistCard.jsx';
 
-export default function NutritionistList({ items, loading, error, source }) {
+export default function NutritionistList({ items, loading, error, source, onSelect }) {
   if (loading) {
     return (
       <section className="flex flex-1 flex-col gap-4">
@@ -36,7 +36,11 @@ export default function NutritionistList({ items, loading, error, source }) {
         </div>
       ) : (
         items.map((nutritionist) => (
-          <NutritionistCard key={nutritionist.id} nutritionist={nutritionist} />
+          <NutritionistCard
+            key={nutritionist.id}
+            nutritionist={nutritionist}
+            onViewProfile={onSelect}
+          />
         ))
       )}
     </section>

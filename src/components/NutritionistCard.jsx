@@ -1,24 +1,17 @@
-function StarIcon({ filled }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={`h-5 w-5 ${filled ? 'text-clay' : 'text-sand'}`}
-      viewBox="0 0 20 20"
-      fill="currentColor"
-    >
-      <path d="M10 1.5 12.472 7l5.528.58-4 3.88.944 5.54L10 14.8l-4.944 2.2.944-5.54-4-3.88L7.528 7z" />
-    </svg>
-  );
-}
+import RatingStars from './RatingStars.jsx';
 
 const placeholderPhoto =
   'https://images.unsplash.com/photo-1544723795-3fb0b39d26c5?auto=format&fit=facearea&w=240&h=240&q=80';
 
-export default function NutritionistCard({ nutritionist }) {
+export default function NutritionistCard({ nutritionist, onViewProfile }) {
   const { name, title, rating = 0, reviewCount = 0, specialties = [], modalities = [], photoUrl } =
     nutritionist;
-  const roundedRating = Math.round(rating);
-  const emptyStars = 5 - roundedRating;
+
+  const handleClick = () => {
+    if (onViewProfile) {
+      onViewProfile(nutritionist.id);
+    }
+  };
 
   return (
     <article className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg md:flex-row md:items-center md:gap-6">
@@ -38,14 +31,7 @@ export default function NutritionistCard({ nutritionist }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-bark/80">
-          <div className="flex items-center gap-1">
-            {Array.from({ length: roundedRating }, (_, index) => (
-              <StarIcon key={`full-${index}`} filled />
-            ))}
-            {Array.from({ length: emptyStars }, (_, index) => (
-              <StarIcon key={`empty-${index}`} filled={false} />
-            ))}
-          </div>
+          <RatingStars value={rating} />
           <span>{rating.toFixed(1)}</span>
           <span className="text-bark/60">{reviewCount} opiniones</span>
         </div>
@@ -70,7 +56,11 @@ export default function NutritionistCard({ nutritionist }) {
         </div>
       </div>
 
-      <button className="w-full rounded-xl border border-clay px-5 py-3 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white md:w-auto">
+      <button
+        type="button"
+        onClick={handleClick}
+        className="w-full rounded-xl border border-clay px-5 py-3 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white md:w-auto"
+      >
         Ver perfil
       </button>
     </article>

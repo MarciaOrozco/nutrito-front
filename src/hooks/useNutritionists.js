@@ -1,41 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
-import axios from "axios";
-
-const mockNutritionists = [
-  {
-    id: 1,
-    name: "Marcia Orozco",
-    title: "Lic. en Nutrición, Educadora en Diabetes, Nutrición Especializada",
-    rating: 4.9,
-    reviewCount: 128,
-    specialties: ["Nutrición clínica", "Diabetes"],
-    modalities: ["Presencial", "Virtual"],
-    photoUrl:
-      "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=facearea&w=240&h=240&q=80",
-  },
-  {
-    id: 2,
-    name: "Andrea Sosa",
-    title: "Lic. en Nutrición Deportiva y Rehabilitación Metabólica",
-    rating: 4.7,
-    reviewCount: 96,
-    specialties: ["Nutrición deportiva", "Metabolismo"],
-    modalities: ["Virtual"],
-    photoUrl:
-      "https://images.unsplash.com/photo-1544723795-3fb0b39d26c5?auto=format&fit=facearea&w=240&h=240&q=80",
-  },
-  {
-    id: 3,
-    name: "Daniela Flores",
-    title: "Lic. en Nutrición Infantil y Trastornos Alimentarios",
-    rating: 4.8,
-    reviewCount: 142,
-    specialties: ["Nutrición infantil", "Nutrición clínica"],
-    modalities: ["Presencial"],
-    photoUrl:
-      "https://images.unsplash.com/photo-1544723795-3fb13a1e97c5?auto=format&fit=facearea&w=240&h=240&q=80",
-  },
-];
+import { useCallback, useMemo, useState } from 'react';
+import axios from 'axios';
+import { mockNutritionists } from '../mocks/nutritionists.js';
 
 const normalize = (value) =>
   value
