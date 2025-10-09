@@ -7,6 +7,19 @@ export const mockNutritionists = [
     reviewCount: 128,
     specialties: ['Nutrición clínica', 'Diabetes', 'Nutrición especializada'],
     modalities: ['Presencial', 'Virtual'],
+    modalitiesInfo: [
+      { id: 1, name: 'Consulta presencial' },
+      { id: 2, name: 'Consulta online' },
+    ],
+    insuranceProviders: [
+      { id: 1, name: 'OSDE' },
+      { id: 2, name: 'Swiss Medical' },
+    ],
+    paymentOptions: [
+      { id: 1, name: 'Obra social' },
+      { id: 2, name: 'Particular' },
+      { id: 3, name: 'Acordar en consulta' },
+    ],
     photoUrl:
       'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=facearea&w=240&h=240&q=80',
     about:
@@ -55,6 +68,16 @@ export const mockNutritionists = [
     reviewCount: 96,
     specialties: ['Nutrición deportiva', 'Metabolismo'],
     modalities: ['Virtual'],
+    modalitiesInfo: [
+      { id: 3, name: 'Consulta virtual' },
+    ],
+    insuranceProviders: [
+      { id: 1, name: 'OSDE' },
+    ],
+    paymentOptions: [
+      { id: 2, name: 'Particular' },
+      { id: 3, name: 'Acordar en consulta' },
+    ],
     photoUrl:
       'https://images.unsplash.com/photo-1544723795-3fb0b39d26c5?auto=format&fit=facearea&w=240&h=240&q=80',
     about:
@@ -94,6 +117,16 @@ export const mockNutritionists = [
     reviewCount: 142,
     specialties: ['Nutrición infantil', 'Nutrición clínica'],
     modalities: ['Presencial'],
+    modalitiesInfo: [
+      { id: 4, name: 'Consulta presencial' },
+    ],
+    insuranceProviders: [
+      { id: 3, name: 'Galeno' },
+    ],
+    paymentOptions: [
+      { id: 1, name: 'Obra social' },
+      { id: 2, name: 'Particular' },
+    ],
     photoUrl:
       'https://images.unsplash.com/photo-1544723795-3fb13a1e97c5?auto=format&fit=facearea&w=240&h=240&q=80',
     about:
@@ -120,5 +153,37 @@ export const mockNutritionists = [
 ];
 
 export function getMockNutritionistById(id) {
-  return mockNutritionists.find((item) => String(item.id) === String(id)) ?? null;
+  const base = mockNutritionists.find((item) => String(item.id) === String(id));
+
+  if (!base) return null;
+
+  const modalidades =
+    base.modalitiesInfo?.map((item) => ({
+      modalidad_id: item.id,
+      nombre: item.name,
+    })) ??
+    base.modalities?.map((name, index) => ({
+      modalidad_id: index + 1,
+      nombre: name,
+    })) ??
+    [];
+
+  const metodosPago =
+    base.paymentOptions?.map((item, index) => ({
+      metodo_pago_id: item.id ?? index + 1,
+      nombre: item.name,
+    })) ?? [];
+
+  const obrasSociales =
+    base.insuranceProviders?.map((item, index) => ({
+      obra_social_id: item.id ?? index + 1,
+      nombre: item.name,
+    })) ?? [];
+
+  return {
+    ...base,
+    modalidades,
+    metodosPago,
+    obrasSociales,
+  };
 }

@@ -48,11 +48,20 @@ export default function NutritionistCard({ nutritionist, onViewProfile }) {
         </div>
 
         <div className="flex flex-wrap gap-2 text-xs text-bark/60">
-          {modalities.map((modality) => (
-            <span key={modality} className="rounded-full border border-sand px-2 py-0.5">
-              {modality}
-            </span>
-          ))}
+          {modalities.map((modality) => {
+            const label =
+              typeof modality === 'string'
+                ? modality
+                : modality.name ?? modality.nombre ?? '';
+
+            if (!label) return null;
+
+            return (
+              <span key={label} className="rounded-full border border-sand px-2 py-0.5">
+                {label}
+              </span>
+            );
+          })}
         </div>
       </div>
 

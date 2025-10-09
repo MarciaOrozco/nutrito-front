@@ -9,6 +9,9 @@ const normalize = (value) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase() ?? "";
 
+const resolveModalityLabel = (value) =>
+  typeof value === 'string' ? value : value?.name ?? value?.nombre ?? '';
+
 const filterLocally = (items, filters) => {
   const nameFilter = normalize(filters.name);
   const specialtyFilter = normalize(filters.specialty);
@@ -19,6 +22,7 @@ const filterLocally = (items, filters) => {
     const normalizedName = normalize(item.name);
     const normalizedTitle = normalize(item.title);
     const normalizedSpecialties = item.specialties.map(normalize);
+    const modalityLabels = (item.modalities ?? []).map(resolveModalityLabel);
 
     const matchesName =
       !nameFilter ||
@@ -34,7 +38,9 @@ const filterLocally = (items, filters) => {
       );
     const matchesModalities =
       selectedModalities.length === 0 ||
-      selectedModalities.some((modality) => item.modalities.includes(modality));
+      selectedModalities.some((modality) =>
+        modalityLabels.includes(modality),
+      );
 
     return (
       matchesName &&
@@ -51,7 +57,12 @@ const deriveSpecialties = (items) => {
 };
 
 const deriveModalities = (items) => {
-  const unique = new Set(items.flatMap((item) => item.modalities));
+  const unique = new Set(
+    items
+      .flatMap((item) => item.modalities ?? [])
+      .map(resolveModalityLabel)
+      .filter(Boolean),
+  );
   return Array.from(unique).sort((a, b) => a.localeCompare(b));
 };
 
@@ -117,6 +128,8 @@ function mapResponseToNutritionists(payload) {
 
     const modalities = Array.isArray(modalitiesRaw)
       ? modalitiesRaw
+          .map(resolveModalityLabel)
+          .filter(Boolean)
       : modalitiesRaw
           .split(",")
           .map((value) => value.trim())

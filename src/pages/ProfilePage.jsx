@@ -141,6 +141,9 @@ export default function ProfilePage() {
                       className="rounded-full border border-sand px-4 py-2 text-sm text-bark/80"
                     >
                       {method.name}
+                      {method.description ? (
+                        <span className="block text-xs text-bark/60">{method.description}</span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -152,14 +155,23 @@ export default function ProfilePage() {
             {profile.modalities?.length ? (
               <ProfileSection title="Modalidades de atención">
                 <div className="flex flex-wrap gap-2">
-                  {profile.modalities.map((modality) => (
-                    <span
-                      key={modality}
-                      className="rounded-full border border-sand px-3 py-1 text-sm text-bark/80"
-                    >
-                      {modality}
-                    </span>
-                  ))}
+                  {profile.modalities.map((modality) => {
+                    const label =
+                      typeof modality === 'string'
+                        ? modality
+                        : modality.name ?? modality.nombre ?? '';
+
+                    if (!label) return null;
+
+                    return (
+                      <span
+                        key={modality.id ?? label}
+                        className="rounded-full border border-sand px-3 py-1 text-sm text-bark/80"
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
                 </div>
               </ProfileSection>
             ) : null}

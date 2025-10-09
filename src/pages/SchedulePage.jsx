@@ -4,15 +4,75 @@ import ProfileHeader from '../components/ProfileHeader.jsx';
 import ProfileSection from '../components/ProfileSection.jsx';
 import useNutritionistProfile from '../hooks/useNutritionistProfile.js';
 import useAvailability from '../hooks/useAvailability.js';
+import useCreateAppointment from '../hooks/useCreateAppointment.js';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const buildLocationOptions = (modalities = []) =>
+  modalities
+    .map((modality, index) => {
+      const label =
+        typeof modality === 'string'
+          ? modality
+          : modality.name ?? modality.nombre ?? '';
+
+      if (!label) return null;
+
+      return {
+        id:
+          typeof modality === 'string'
+            ? `mod-${index}`
+            : String(modality.id ?? modality.modalidad_id ?? `mod-${index}`),
+        label,
+        modalidadId:
+          typeof modality === 'string'
+            ? null
+            : Number(modality.id ?? modality.modalidad_id ?? NaN),
+      };
+    })
+    .filter(Boolean);
+
+const buildPaymentOptions = (paymentMethods = [], insuranceProviders = []) => {
+  const normalizedMethods = paymentMethods.map((method, index) => ({
+    id: method.id ?? `method-${index}`,
+    name: method.name ?? `Método ${index + 1}`,
+  }));
+
+  const obraSocialMethod = normalizedMethods.find((method) =>
+    method.name.toLowerCase().includes('obra'),
+  );
+
+  const insuranceOptions = obraSocialMethod
+    ? insuranceProviders.map((insurance) => ({
+        id: `insurance-${insurance.id}`,
+        label: `${insurance.name} (Obra social)`,
+        methodId: obraSocialMethod.id,
+        insuranceId: insurance.id,
+        type: 'insurance',
+      }))
+    : [];
+
+  const methodOptions = normalizedMethods.map((method) => ({
+    id: `method-${method.id}`,
+    label: method.name,
+    methodId: method.id,
+    type: 'method',
+  }));
+
+  return [...insuranceOptions, ...methodOptions];
+};
 
 export default function SchedulePage() {
   const { nutricionistaId } = useParams();
   const navigate = useNavigate();
 
-  const { profile, fetchProfile, loading: loadingProfile, error: profileError } =
-    useNutritionistProfile();
+  const {
+    profile,
+    fetchProfile,
+    loading: loadingProfile,
+    error: profileError,
+  } = useNutritionistProfile();
+
   const {
     slots,
     error: availabilityError,
@@ -21,12 +81,20 @@ export default function SchedulePage() {
     fetchAvailability,
   } = useAvailability();
 
+  const {
+    createAppointment,
+    loading: bookingLoading,
+    error: bookingError,
+    resetError: resetBookingError,
+  } = useCreateAppointment();
+
   const [step, setStep] = useState('schedule');
-  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [selectedTime, setSelectedTime] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState('');
+  const [selectedPaymentOptionId, setSelectedPaymentOptionId] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState(null);
 
   useEffect(() => {
     fetchProfile(nutricionistaId);
@@ -47,44 +115,43 @@ export default function SchedulePage() {
     }
   }, [slots, selectedTime]);
 
-  useEffect(() => {
-    if (!selectedLocation && profile?.modalities?.length) {
-      setSelectedLocation(profile.modalities[0]);
-    }
-  }, [profile?.modalities, selectedLocation]);
-
-  const locations = useMemo(
-    () => profile?.modalities ?? ['Consulta presencial', 'Consulta virtual'],
+  const locationOptions = useMemo(
+    () => buildLocationOptions(profile?.modalities),
     [profile?.modalities],
   );
 
-  const paymentMethods = useMemo(
-    () => profile?.paymentMethods ?? [],
-    [profile?.paymentMethods],
+  useEffect(() => {
+    if (!selectedLocationId && locationOptions.length) {
+      setSelectedLocationId(locationOptions[0].id);
+    }
+  }, [locationOptions, selectedLocationId]);
+
+  const selectedLocation =
+    locationOptions.find((option) => option.id === selectedLocationId) ?? null;
+
+  const paymentOptions = useMemo(
+    () =>
+      buildPaymentOptions(
+        profile?.paymentMethods ?? [],
+        profile?.insuranceProviders ?? [],
+      ),
+    [profile?.paymentMethods, profile?.insuranceProviders],
   );
 
   useEffect(() => {
-    if (!selectedPayment && paymentMethods.length) {
-      setSelectedPayment(paymentMethods[0].id);
+    if (!selectedPaymentOptionId && paymentOptions.length) {
+      setSelectedPaymentOptionId(paymentOptions[0].id);
     }
-  }, [paymentMethods, selectedPayment]);
+  }, [paymentOptions, selectedPaymentOptionId]);
 
-  const canContinueSchedule = Boolean(selectedLocation && selectedDate && selectedTime);
-  const canConfirmPayment = Boolean(selectedPayment);
+  const selectedPaymentOption =
+    paymentOptions.find((option) => option.id === selectedPaymentOptionId) ??
+    null;
 
-  const handleContinue = () => {
-    if (step === 'schedule' && canContinueSchedule) {
-      setStep('payment');
-    } else if (step === 'payment' && canConfirmPayment) {
-      setShowConfirmation(true);
-    }
-  };
-
-  const handleReset = () => {
-    setShowConfirmation(false);
-    setStep('schedule');
-    setSelectedTime('');
-  };
+  const canContinueSchedule =
+    Boolean(selectedLocation && selectedDate && selectedTime) && !bookingLoading;
+  const canConfirmPayment =
+    Boolean(selectedPaymentOption?.methodId) && !bookingLoading;
 
   const handleBack = () => {
     if (step === 'payment') {
@@ -92,6 +159,55 @@ export default function SchedulePage() {
       return;
     }
     navigate(-1);
+  };
+
+  const handleReset = () => {
+    setShowConfirmation(false);
+    setStep('schedule');
+    setSelectedTime('');
+    setSelectedPaymentOptionId('');
+    setConfirmationData(null);
+  };
+
+  const handleChangePayment = (value) => {
+    resetBookingError();
+    setSelectedPaymentOptionId(value);
+  };
+
+  const handleContinue = async () => {
+    if (step === 'schedule') {
+      if (canContinueSchedule) {
+        setStep('payment');
+      }
+      return;
+    }
+
+    if (step === 'payment' && selectedPaymentOption?.methodId) {
+      const pacienteId = Number.parseInt(
+        import.meta.env.VITE_PATIENT_ID ?? '1',
+        10,
+      );
+      const payload = {
+        pacienteId,
+        nutricionistaId: Number(nutricionistaId),
+        fecha: selectedDate,
+        hora: selectedTime,
+        modalidadId: selectedLocation?.modalidadId ?? null,
+        metodoPagoId: selectedPaymentOption.methodId,
+      };
+
+      const result = await createAppointment(payload);
+
+      if (result.success) {
+        setConfirmationData({
+          location: selectedLocation?.label ?? 'Sin definir',
+          date: selectedDate,
+          time: selectedTime,
+          payment: selectedPaymentOption.label,
+        });
+        setShowConfirmation(true);
+      }
+    }
   };
 
   const renderSlots = () => {
@@ -147,13 +263,13 @@ export default function SchedulePage() {
         <label className="flex flex-col gap-2 text-sm font-medium text-bark">
           Elige el lugar:
           <select
-            value={selectedLocation}
-            onChange={(event) => setSelectedLocation(event.target.value)}
+            value={selectedLocationId}
+            onChange={(event) => setSelectedLocationId(event.target.value)}
             className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm font-normal text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
           >
-            {locations.map((location) => (
-              <option key={location} value={location}>
-                {location}
+            {locationOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -213,39 +329,66 @@ export default function SchedulePage() {
         Este profesional acepta los siguientes métodos. Selecciona uno para continuar.
       </p>
 
+      {profile?.insuranceProviders?.length ? (
+        <div className="mt-4 rounded-2xl border border-sand bg-bone p-4 text-sm text-bark/80">
+          <p className="font-semibold text-bark">Este profesional acepta OBRA SOCIAL.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {profile.insuranceProviders.map((insurance) => (
+              <span
+                key={insurance.id}
+                className="rounded-full border border-sand px-3 py-1 text-xs text-bark/70"
+              >
+                {insurance.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-6 flex flex-col gap-5">
         <ProfileSection title="Resumen de la cita" className="bg-bone">
           <ul className="text-sm text-bark/80">
             <li>
-              <strong>Lugar:</strong> {selectedLocation}
+              <strong>Lugar:</strong> {selectedLocation?.label ?? 'Sin definir'}
             </li>
             <li>
               <strong>Fecha:</strong> {new Date(selectedDate).toLocaleDateString()}
             </li>
             <li>
-              <strong>Hora:</strong> {selectedTime}
+              <strong>Hora:</strong> {selectedTime || 'Sin seleccionar'}
             </li>
           </ul>
         </ProfileSection>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-bark">
-          Selecciona un método de pago
+          Selecciona obra social o método de pago
           <select
-            value={selectedPayment}
-            onChange={(event) => setSelectedPayment(event.target.value)}
+            value={selectedPaymentOptionId}
+            onChange={(event) => handleChangePayment(event.target.value)}
+            disabled={paymentOptions.length === 0}
             className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm font-normal text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
           >
-            {paymentMethods.length ? (
-              paymentMethods.map((method) => (
-                <option key={method.id} value={method.id}>
-                  {method.name}
-                </option>
-              ))
-            ) : (
-              <option value="manual">Acordar en consulta</option>
-            )}
+            {paymentOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+            {paymentOptions.length === 0 ? (
+              <option value="">Sin métodos disponibles</option>
+            ) : null}
           </select>
+          {paymentOptions.length === 0 ? (
+            <span className="text-xs text-bark/60">
+              Este profesional aún no cargó métodos de pago. Por favor, intenta más tarde.
+            </span>
+          ) : null}
         </label>
+
+        {bookingError ? (
+          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            {bookingError}
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-8 flex justify-end gap-3">
@@ -262,7 +405,7 @@ export default function SchedulePage() {
           disabled={!canConfirmPayment}
           className="rounded-full bg-clay px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
-          Confirmar turno
+          {bookingLoading ? 'Guardando...' : 'Confirmar turno'}
         </button>
       </div>
     </div>
@@ -270,11 +413,29 @@ export default function SchedulePage() {
 
   const renderConfirmation = () => (
     <div className="rounded-3xl bg-white p-6 text-center shadow-soft">
-      <h2 className="text-xl font-semibold text-bark">¡Turno reservado!</h2>
+      <h2 className="text-xl font-semibold text-bark">¡Turno agendado con éxito!</h2>
       <p className="mt-4 text-sm text-bark/70">
         Guardamos tu selección. Podrás gestionar el turno desde tu panel de paciente en la próxima
         iteración.
       </p>
+
+      {confirmationData ? (
+        <div className="mt-6 text-sm text-bark/80">
+          <p>
+            <strong>Lugar:</strong> {confirmationData.location}
+          </p>
+          <p>
+            <strong>Fecha:</strong> {new Date(confirmationData.date).toLocaleDateString()}
+          </p>
+          <p>
+            <strong>Hora:</strong> {confirmationData.time}
+          </p>
+          <p>
+            <strong>Método de pago:</strong> {confirmationData.payment}
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-8 flex justify-center gap-3">
         <button
           type="button"

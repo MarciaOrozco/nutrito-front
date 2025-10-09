@@ -29,6 +29,55 @@ const mapReviews = (items) =>
     date: item.date ?? item.fecha ?? null,
   }));
 
+const mapModalities = (items) => {
+  if (!items) return [];
+
+  if (Array.isArray(items)) {
+    return items
+      .map((item, index) => {
+        if (typeof item === 'string') {
+          return {
+            id: `mod-${index}`,
+            name: item,
+          };
+        }
+
+        return {
+          id:
+            item.id ??
+            item.modalidad_id ??
+            item.modalidadId ??
+            globalThis.crypto?.randomUUID?.() ??
+            `mod-${index}`,
+          name: item.name ?? item.nombre ?? '',
+        };
+      })
+      .filter((item) => item.name);
+  }
+
+  if (typeof items === 'string') {
+    return items
+      .split(',')
+      .map((value, index) => ({
+        id: `mod-${index}`,
+        name: value.trim(),
+      }))
+      .filter((item) => item.name);
+  }
+
+  return [];
+};
+
+const mapInsuranceProviders = (items) =>
+  (items ?? []).map((item, index) => ({
+    id:
+      item.id ??
+      item.obra_social_id ??
+      globalThis.crypto?.randomUUID?.() ??
+      `insurance-${index}`,
+    name: item.name ?? item.nombre ?? 'Obra social',
+  }));
+
 const mapPaymentMethods = (items) =>
   (items ?? []).map((item, index) => ({
     id:
@@ -78,6 +127,11 @@ const mapProfileFromResponse = (payload) => {
       .filter(Boolean);
   }
 
+  const modalities = mapModalities(base.modalidades ?? base.modalities ?? []);
+  const insuranceProviders = mapInsuranceProviders(
+    base.obrasSociales ?? base.insuranceProviders ?? [],
+  );
+
   return {
     id,
     name: fullName,
@@ -102,7 +156,8 @@ const mapProfileFromResponse = (payload) => {
     specialties,
     education: mapEducation(base.educacion ?? base.education ?? []),
     reviews: mapReviews(base.resenas ?? base.reviews ?? []),
-    modalities: base.modalidades ?? base.modalities ?? [],
+    modalities,
+    insuranceProviders,
     paymentMethods: mapPaymentMethods(base.metodosPago ?? base.paymentMethods ?? []),
   };
 };
