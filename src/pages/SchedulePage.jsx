@@ -5,6 +5,7 @@ import ProfileSection from '../components/ProfileSection.jsx';
 import useNutritionistProfile from '../hooks/useNutritionistProfile.js';
 import useAvailability from '../hooks/useAvailability.js';
 import useCreateAppointment from '../hooks/useCreateAppointment.js';
+import useLinkPatientProfessional from '../hooks/useLinkPatientProfessional.js';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -87,6 +88,11 @@ export default function SchedulePage() {
     error: bookingError,
     resetError: resetBookingError,
   } = useCreateAppointment();
+  const {
+    link: linkPatientProfessional,
+    error: linkError,
+    resetError: resetLinkError,
+  } = useLinkPatientProfessional();
 
   const [step, setStep] = useState('schedule');
   const [selectedLocationId, setSelectedLocationId] = useState('');
@@ -167,10 +173,13 @@ export default function SchedulePage() {
     setSelectedTime('');
     setSelectedPaymentOptionId('');
     setConfirmationData(null);
+    resetBookingError();
+    resetLinkError();
   };
 
   const handleChangePayment = (value) => {
     resetBookingError();
+    resetLinkError();
     setSelectedPaymentOptionId(value);
   };
 
@@ -199,12 +208,21 @@ export default function SchedulePage() {
       const result = await createAppointment(payload);
 
       if (result.success) {
+        const linkResult = await linkPatientProfessional({
+          pacienteId,
+          nutricionistaId: Number(nutricionistaId),
+        });
+
         setConfirmationData({
           location: selectedLocation?.label ?? 'Sin definir',
           date: selectedDate,
           time: selectedTime,
           payment: selectedPaymentOption.label,
         });
+        if (!linkResult.success) {
+          console.error('Error al vincular paciente y profesional:', linkResult.error);
+        }
+
         setShowConfirmation(true);
       }
     }
@@ -387,6 +405,12 @@ export default function SchedulePage() {
         {bookingError ? (
           <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
             {bookingError}
+          </p>
+        ) : null}
+        {linkError ? (
+          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            No se pudo guardar el vínculo paciente–profesional. Podrás intentarlo nuevamente más
+            tarde.
           </p>
         ) : null}
       </div>
