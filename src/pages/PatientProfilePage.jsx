@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ProfileSection from '../components/ProfileSection.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import usePatientProfile from '../hooks/usePatientProfile.js';
 import useCancelAppointment from '../hooks/useCancelAppointment.js';
 import useUploadDocuments from '../hooks/useUploadDocuments.js';
+import usePatientProfileForNutri from '../hooks/usePatientProfileForNutri.js';
 import { useAuth } from '../auth/useAuth.js';
 
 const formatDate = (value) => {
@@ -14,23 +15,47 @@ const formatDate = (value) => {
   return date.toLocaleDateString();
 };
 
-export default function PatientProfilePage() {
+export default function PatientProfilePage({ readOnly = false }) {
   const { user } = useAuth();
-  const pacienteId = user?.pacienteId ?? null;
   const navigate = useNavigate();
+  const location = useLocation();
+  let pacienteId = readOnly
+    ? Number.parseInt(location.pathname.split('/').pop(), 10)
+    : user?.pacienteId ?? null;
+  const nutricionistaId = readOnly ? user?.nutricionistaId ?? null : null;
   const fileInputRef = useRef(null);
 
-  const {
-    contacto,
-    proximoTurno,
-    historial,
-    planes,
-    documentos,
-    loading,
-    error,
-    source,
-    refresh,
-  } = usePatientProfile(pacienteId);
+  const patientHookForNutri = usePatientProfileForNutri(
+    readOnly ? nutricionistaId : null,
+    readOnly ? pacienteId : null,
+  );
+  const patientHookForPatient = usePatientProfile(readOnly ? null : pacienteId);
+
+  const contacto = readOnly
+    ? patientHookForNutri.data?.contacto ?? null
+    : patientHookForPatient.contacto;
+  const proximoTurno = readOnly
+    ? patientHookForNutri.data?.proximoTurno ?? null
+    : patientHookForPatient.proximoTurno;
+  const historial = readOnly
+    ? patientHookForNutri.data?.historial ?? []
+    : patientHookForPatient.historial;
+  const planes = readOnly
+    ? patientHookForNutri.data?.planes ?? []
+    : patientHookForPatient.planes;
+  const documentos = readOnly
+    ? patientHookForNutri.data?.documentos ?? []
+    : patientHookForPatient.documentos;
+  const loading = readOnly
+    ? patientHookForNutri.loading
+    : patientHookForPatient.loading;
+  const error = readOnly
+    ? patientHookForNutri.error
+    : patientHookForPatient.error;
+  const source = readOnly ? 'backend' : patientHookForPatient.source;
+  const refresh = readOnly ? patientHookForNutri.refresh : patientHookForPatient.refresh;
+
+  const canManage = !readOnly;
 
   const {
     cancelAppointment,
@@ -49,9 +74,9 @@ export default function PatientProfilePage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const safeHistorial = useMemo(() => historial ?? [], [historial]);
-  const safePlanes = useMemo(() => planes ?? [], [planes]);
-  const safeDocumentos = useMemo(() => documentos ?? [], [documentos]);
+  const safeHistorial = historial ?? [];
+  const safePlanes = planes ?? [];
+  const safeDocumentos = documentos ?? [];
 
   const closeCancelDialog = () => {
     setShowCancelDialog(false);
@@ -168,7 +193,7 @@ export default function PatientProfilePage() {
           </ProfileSection>
 
           <ProfileSection title="Documentos">
-            {uploadError ? (
+            {uploadError && canManage ? (
               <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                 {uploadError}
               </p>
@@ -185,21 +210,25 @@ export default function PatientProfilePage() {
                 <p>No se cargaron documentos todavía.</p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={handleAddDocuments}
-              disabled={uploadLoading}
-              className="mt-4 w-fit rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-            >
-              {uploadLoading ? 'Subiendo...' : 'Agregar documentos'}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFilesSelected}
-            />
+            {canManage ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleAddDocuments}
+                  disabled={uploadLoading}
+                  className="mt-4 w-fit rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {uploadLoading ? 'Subiendo...' : 'Agregar documentos'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFilesSelected}
+                />
+              </>
+            ) : null}
           </ProfileSection>
         </div>
 
@@ -215,25 +244,29 @@ export default function PatientProfilePage() {
                   </span>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={handleReprogramar}
-                    className="rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                  >
-                    Reprogramar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenCancelDialog}
-                    className="rounded-full bg-[#D9534F] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                    disabled={cancelLoading}
-                  >
-                    {cancelLoading ? 'Cancelando...' : 'Cancelar'}
-                  </button>
-                </div>
-                {cancelError ? (
-                  <p className="text-sm text-[#D9534F]">{cancelError}</p>
+                {canManage ? (
+                  <>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={handleReprogramar}
+                        className="rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                      >
+                        Reprogramar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleOpenCancelDialog}
+                        className="rounded-full bg-[#D9534F] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                        disabled={cancelLoading}
+                      >
+                        {cancelLoading ? 'Cancelando...' : 'Cancelar'}
+                      </button>
+                    </div>
+                    {cancelError ? (
+                      <p className="text-sm text-[#D9534F]">{cancelError}</p>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
             ) : (

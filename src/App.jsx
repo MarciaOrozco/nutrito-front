@@ -3,6 +3,7 @@ import SearchPage from "./pages/SearchPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import SchedulePage from "./pages/SchedulePage.jsx";
 import PatientProfilePage from "./pages/PatientProfilePage.jsx";
+import NutritionistDashboard from "./pages/NutritionistDashboard.jsx";
 import LoginPage from "./auth/LoginPage.jsx";
 import RegisterPage from "./auth/RegisterPage.jsx";
 import PrivateRoute from "./auth/PrivateRoute.jsx";
@@ -38,6 +39,14 @@ function App() {
                       className="rounded-full border border-clay px-5 py-2 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white"
                     >
                       Mi perfil
+                    </Link>
+                  ) : null}
+                  {user?.rol === "nutricionista" ? (
+                    <Link
+                      to="/panel-profesional"
+                      className="rounded-full border border-clay px-5 py-2 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white"
+                    >
+                      Panel profesional
                     </Link>
                   ) : null}
                   <button
@@ -81,6 +90,16 @@ function App() {
                 element={<SchedulePage />}
               />
               <Route path="/mi-perfil" element={<PatientProfilePage />} />
+            </Route>
+            <Route element={<PrivateRoute roles={["nutricionista"]} />}>
+              <Route
+                path="/panel-profesional"
+                element={<NutritionistDashboard />}
+              />
+              <Route
+                path="/paciente/:pacienteId"
+                element={<PatientProfilePage readOnly />}
+              />
             </Route>
           </Routes>
         </main>
