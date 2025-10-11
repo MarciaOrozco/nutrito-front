@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { mockPatientProfile } from '../mocks/patient.js';
+import { useAuth } from '../auth/useAuth.js';
 
 const normalizeTurno = (turno) => ({
   ...turno,
@@ -18,6 +19,7 @@ export default function usePatientProfile(pacienteId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [source, setSource] = useState('backend');
+  const { token } = useAuth();
 
   const shouldUseBackend = import.meta.env.VITE_USE_BACKEND === 'true';
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
@@ -31,7 +33,10 @@ export default function usePatientProfile(pacienteId) {
   }, []);
 
   const fetchProfile = useCallback(async () => {
-    if (!pacienteId) return;
+    if (!pacienteId) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -43,12 +48,26 @@ export default function usePatientProfile(pacienteId) {
       return;
     }
 
+    if (!token) {
+      setError('Debes iniciar sesión para acceder a tu perfil');
+      setLoading(false);
+      return;
+    }
+
     try {
       const [perfilRes, turnosRes, planesRes, documentosRes] = await Promise.all([
-        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/perfil`),
-        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/turnos`),
-        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/planes`),
-        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/documentos`),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/perfil`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/turnos`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/planes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/documentos`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       aplicarDatos({
@@ -70,7 +89,7 @@ export default function usePatientProfile(pacienteId) {
     } finally {
       setLoading(false);
     }
-  }, [aplicarDatos, baseUrl, pacienteId, shouldUseBackend]);
+  }, [aplicarDatos, baseUrl, pacienteId, shouldUseBackend, token]);
 
   useEffect(() => {
     fetchProfile();

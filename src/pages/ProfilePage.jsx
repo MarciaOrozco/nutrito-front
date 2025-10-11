@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import ProfileHeader from '../components/ProfileHeader.jsx';
-import ProfileSection from '../components/ProfileSection.jsx';
-import ReviewCard from '../components/ReviewCard.jsx';
-import useNutritionistProfile from '../hooks/useNutritionistProfile.js';
+import { useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import ProfileHeader from "../components/ProfileHeader.jsx";
+import ProfileSection from "../components/ProfileSection.jsx";
+import ReviewCard from "../components/ReviewCard.jsx";
+import useNutritionistProfile from "../hooks/useNutritionistProfile.js";
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -34,7 +34,7 @@ export default function ProfilePage() {
     </div>
   );
 
-  const showFallbackNotice = source === 'mock' && !loading;
+  const showFallbackNotice = source === "mock" && !loading;
 
   return (
     <section className="flex w-full flex-col gap-6">
@@ -48,7 +48,7 @@ export default function ProfilePage() {
           Volver
         </button>
         <p className="text-xs uppercase tracking-widest text-bark/60">
-          CU-001-002 Visualizar perfil profesional
+          Agenda con este profesional
         </p>
       </div>
 
@@ -75,31 +75,44 @@ export default function ProfilePage() {
 
       {showFallbackNotice ? (
         <div className="rounded-2xl border border-sand bg-bone p-4 text-sm text-bark/70">
-          Mostramos información simulada mientras verificas la integración con el backend real.
+          Mostramos información simulada mientras verificas la integración con
+          el backend real.
         </div>
       ) : null}
 
-      {profile ? <ProfileHeader profile={profile} onSchedule={handleSchedule} /> : null}
+      {profile ? (
+        <ProfileHeader profile={profile} onSchedule={handleSchedule} />
+      ) : null}
       {!profile && loading ? renderHeaderSkeleton() : null}
 
       {profile ? (
         <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
           <div className="flex flex-col gap-6">
             <ProfileSection title="Sobre mí">
-              <p>{profile.about || 'Este profesional aún no cargó información personal.'}</p>
+              <p>
+                {profile.about ||
+                  "Este profesional aún no cargó información personal."}
+              </p>
             </ProfileSection>
 
             <ProfileSection title="Educación">
               {profile.education?.length ? (
                 profile.education.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-sand/60 bg-bone/70 p-4">
-                    <p className="text-sm font-semibold text-bark">{item.title}</p>
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-sand/60 bg-bone/70 p-4"
+                  >
+                    <p className="text-sm font-semibold text-bark">
+                      {item.title}
+                    </p>
                     <p className="text-xs uppercase tracking-wide text-clay">
                       {item.institution}
-                      {item.year ? ` · ${item.year}` : ''}
+                      {item.year ? ` · ${item.year}` : ""}
                     </p>
                     {item.description ? (
-                      <p className="mt-2 text-sm text-bark/70">{item.description}</p>
+                      <p className="mt-2 text-sm text-bark/70">
+                        {item.description}
+                      </p>
                     ) : null}
                   </div>
                 ))
@@ -110,7 +123,9 @@ export default function ProfilePage() {
 
             <ProfileSection title="Reseñas que ha recibido">
               {hasReviews ? (
-                profile.reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+                profile.reviews.map((review) => (
+                  <ReviewCard key={review.id} review={review} />
+                ))
               ) : (
                 <p>Este profesional aún no ha recibido reseñas.</p>
               )}
@@ -122,7 +137,10 @@ export default function ProfilePage() {
               {profile.specialties?.length ? (
                 <ul className="flex flex-col gap-2">
                   {profile.specialties.map((specialty) => (
-                    <li key={specialty} className="rounded-full bg-sand px-4 py-2 text-sm text-bark">
+                    <li
+                      key={specialty}
+                      className="rounded-full bg-sand px-4 py-2 text-sm text-bark"
+                    >
                       {specialty}
                     </li>
                   ))}
@@ -142,13 +160,18 @@ export default function ProfilePage() {
                     >
                       {method.name}
                       {method.description ? (
-                        <span className="block text-xs text-bark/60">{method.description}</span>
+                        <span className="block text-xs text-bark/60">
+                          {method.description}
+                        </span>
                       ) : null}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p>Este profesional acordará el método de pago durante la consulta.</p>
+                <p>
+                  Este profesional acordará el método de pago durante la
+                  consulta.
+                </p>
               )}
             </ProfileSection>
 
@@ -157,9 +180,9 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap gap-2">
                   {profile.modalities.map((modality) => {
                     const label =
-                      typeof modality === 'string'
+                      typeof modality === "string"
                         ? modality
-                        : modality.name ?? modality.nombre ?? '';
+                        : modality.name ?? modality.nombre ?? "";
 
                     if (!label) return null;
 

@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../auth/useAuth.js';
 
 export default function useRescheduleAppointment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { token } = useAuth();
 
   const reschedule = useCallback(async ({ turnoId, pacienteId, fecha, hora }) => {
     if (!turnoId) {
@@ -26,6 +28,12 @@ export default function useRescheduleAppointment() {
       return { success: true };
     }
 
+    if (!token) {
+      setLoading(false);
+      setError('Debes iniciar sesión para reprogramar el turno');
+      return { success: false, error: new Error('No autenticado') };
+    }
+
     try {
       await axios.put(
         `${baseUrl}/api/turnos/${turnoId}/reprogramar`,
@@ -36,6 +44,7 @@ export default function useRescheduleAppointment() {
         },
         {
           timeout: 5000,
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
@@ -50,7 +59,7 @@ export default function useRescheduleAppointment() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   const resetError = useCallback(() => setError(null), []);
 

@@ -1,9 +1,11 @@
 import { useCallback, useState } from 'react';
 import axios from 'axios';
+import { useAuth } from '../auth/useAuth.js';
 
 export default function useUploadDocuments() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { token } = useAuth();
 
   const uploadDocuments = useCallback(async ({ pacienteId, files, descripcion }) => {
     if (!pacienteId) {
@@ -26,6 +28,12 @@ export default function useUploadDocuments() {
       return { success: true };
     }
 
+    if (!token) {
+      setLoading(false);
+      setError('Debes iniciar sesión para subir documentos');
+      return { success: false, error: new Error('No autenticado') };
+    }
+
     const formData = new FormData();
     formData.append('pacienteId', pacienteId);
     if (descripcion) {
@@ -38,7 +46,10 @@ export default function useUploadDocuments() {
 
     try {
       const response = await axios.post(`${baseUrl}/api/documentos`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
         timeout: 10000,
       });
 
@@ -53,7 +64,7 @@ export default function useUploadDocuments() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   const resetError = useCallback(() => setError(null), []);
 

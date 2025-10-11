@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { getMockAvailabilityFor } from '../mocks/availability.js';
+import { useAuth } from '../auth/useAuth.js';
 
 export default function useAvailability() {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [source, setSource] = useState('mock');
+  const { token } = useAuth();
 
   const fetchAvailability = useCallback(async ({ nutricionistaId, date }) => {
     if (!nutricionistaId || !date) {
@@ -32,12 +34,19 @@ export default function useAvailability() {
       return;
     }
 
+    if (!token) {
+      setError('Debes iniciar sesión para consultar la disponibilidad');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.get(
         `${baseUrl}/api/turnos/disponibles/${nutricionistaId}`,
         {
           params: { fecha: date },
           timeout: 5000,
+          headers: { Authorization: `Bearer ${token}` },
         },
       );
 
@@ -57,7 +66,7 @@ export default function useAvailability() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   return {
     slots,

@@ -5,6 +5,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import usePatientProfile from '../hooks/usePatientProfile.js';
 import useCancelAppointment from '../hooks/useCancelAppointment.js';
 import useUploadDocuments from '../hooks/useUploadDocuments.js';
+import { useAuth } from '../auth/useAuth.js';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -14,7 +15,8 @@ const formatDate = (value) => {
 };
 
 export default function PatientProfilePage() {
-  const pacienteId = Number.parseInt(import.meta.env.VITE_PATIENT_ID ?? '1', 10);
+  const { user } = useAuth();
+  const pacienteId = user?.pacienteId ?? null;
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -102,6 +104,20 @@ export default function PatientProfilePage() {
   const headerNotice = source === 'mock'
     ? 'Mostramos información simulada mientras se configura la conexión con el backend.'
     : null;
+
+  if (!pacienteId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bone px-4">
+        <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-soft">
+          <h1 className="text-2xl font-semibold text-bark">Mi perfil</h1>
+          <p className="mt-4 text-sm text-bark/70">
+            No encontramos la información de tu perfil de paciente. Comunicate con soporte para
+            completar el registro.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="flex w-full flex-col gap-6">

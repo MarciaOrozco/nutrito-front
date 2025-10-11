@@ -7,6 +7,7 @@ import useAvailability from '../hooks/useAvailability.js';
 import useCreateAppointment from '../hooks/useCreateAppointment.js';
 import useRescheduleAppointment from '../hooks/useRescheduleAppointment.js';
 import useLinkPatientProfessional from '../hooks/useLinkPatientProfessional.js';
+import { useAuth } from '../auth/useAuth.js';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -71,6 +72,8 @@ export default function SchedulePage() {
   const searchParams = new URLSearchParams(location.search);
   const existingTurnoId = searchParams.get('turnoId');
   const isReschedule = Boolean(existingTurnoId);
+  const { user } = useAuth();
+  const pacienteId = user?.pacienteId ?? null;
 
   const {
     profile,
@@ -114,6 +117,7 @@ export default function SchedulePage() {
   const [confirmationData, setConfirmationData] = useState(null);
   const prefillDoneRef = useRef(false);
   const initialDateRef = useRef(null);
+  const [flowError, setFlowError] = useState(null);
 
   useEffect(() => {
     fetchProfile(nutricionistaId);
@@ -238,6 +242,8 @@ export default function SchedulePage() {
   };
 
   const handleContinue = async () => {
+    setFlowError(null);
+
     if (step === 'schedule') {
       if (canContinueSchedule) {
         setStep('payment');
@@ -245,11 +251,12 @@ export default function SchedulePage() {
       return;
     }
 
+    if (!pacienteId) {
+      setFlowError('Debes iniciar sesión como paciente para completar el proceso.');
+      return;
+    }
+
     if (step === 'payment' && selectedPaymentOption?.methodId) {
-      const pacienteId = Number.parseInt(
-        import.meta.env.VITE_PATIENT_ID ?? '1',
-        10,
-      );
       const payload = {
         pacienteId,
         nutricionistaId: Number(nutricionistaId),
@@ -588,10 +595,16 @@ export default function SchedulePage() {
           <span aria-hidden="true">←</span>
           Volver
       </button>
-      <p className="text-xs uppercase tracking-widest text-bark/60">
+        <p className="text-xs uppercase tracking-widest text-bark/60">
           {isReschedule ? 'CU-001-003 Reprogramar turno' : 'CU-001-003 Agendar turno'}
         </p>
       </div>
+
+      {flowError ? (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          {flowError}
+        </div>
+      ) : null}
 
       {profileError ? (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
