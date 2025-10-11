@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import ProfileHeader from '../components/ProfileHeader.jsx';
-import ProfileSection from '../components/ProfileSection.jsx';
-import useNutritionistProfile from '../hooks/useNutritionistProfile.js';
-import useAvailability from '../hooks/useAvailability.js';
-import useCreateAppointment from '../hooks/useCreateAppointment.js';
-import useRescheduleAppointment from '../hooks/useRescheduleAppointment.js';
-import useLinkPatientProfessional from '../hooks/useLinkPatientProfessional.js';
-import { useAuth } from '../auth/useAuth.js';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import ProfileHeader from "../components/ProfileHeader.jsx";
+import ProfileSection from "../components/ProfileSection.jsx";
+import useNutritionistProfile from "../hooks/useNutritionistProfile.js";
+import useAvailability from "../hooks/useAvailability.js";
+import useCreateAppointment from "../hooks/useCreateAppointment.js";
+import useRescheduleAppointment from "../hooks/useRescheduleAppointment.js";
+import useLinkPatientProfessional from "../hooks/useLinkPatientProfessional.js";
+import { useAuth } from "../auth/useAuth.js";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -15,20 +15,20 @@ const buildLocationOptions = (modalities = []) =>
   modalities
     .map((modality, index) => {
       const label =
-        typeof modality === 'string'
+        typeof modality === "string"
           ? modality
-          : modality.name ?? modality.nombre ?? '';
+          : modality.name ?? modality.nombre ?? "";
 
       if (!label) return null;
 
       return {
         id:
-          typeof modality === 'string'
+          typeof modality === "string"
             ? `mod-${index}`
             : String(modality.id ?? modality.modalidad_id ?? `mod-${index}`),
         label,
         modalidadId:
-          typeof modality === 'string'
+          typeof modality === "string"
             ? null
             : Number(modality.id ?? modality.modalidad_id ?? NaN),
       };
@@ -42,7 +42,7 @@ const buildPaymentOptions = (paymentMethods = [], insuranceProviders = []) => {
   }));
 
   const obraSocialMethod = normalizedMethods.find((method) =>
-    method.name.toLowerCase().includes('obra'),
+    method.name.toLowerCase().includes("obra")
   );
 
   const insuranceOptions = obraSocialMethod
@@ -51,7 +51,7 @@ const buildPaymentOptions = (paymentMethods = [], insuranceProviders = []) => {
         label: `${insurance.name} (Obra social)`,
         methodId: obraSocialMethod.id,
         insuranceId: insurance.id,
-        type: 'insurance',
+        type: "insurance",
       }))
     : [];
 
@@ -59,7 +59,7 @@ const buildPaymentOptions = (paymentMethods = [], insuranceProviders = []) => {
     id: `method-${method.id}`,
     label: method.name,
     methodId: method.id,
-    type: 'method',
+    type: "method",
   }));
 
   return [...insuranceOptions, ...methodOptions];
@@ -70,7 +70,7 @@ export default function SchedulePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const existingTurnoId = searchParams.get('turnoId');
+  const existingTurnoId = searchParams.get("turnoId");
   const isReschedule = Boolean(existingTurnoId);
   const { user } = useAuth();
   const pacienteId = user?.pacienteId ?? null;
@@ -108,11 +108,11 @@ export default function SchedulePage() {
     resetError: resetLinkError,
   } = useLinkPatientProfessional();
 
-  const [step, setStep] = useState('schedule');
-  const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [step, setStep] = useState("schedule");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
   const [selectedDate, setSelectedDate] = useState(todayISO());
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedPaymentOptionId, setSelectedPaymentOptionId] = useState('');
+  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedPaymentOptionId, setSelectedPaymentOptionId] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationData, setConfirmationData] = useState(null);
   const prefillDoneRef = useRef(false);
@@ -134,18 +134,18 @@ export default function SchedulePage() {
         return;
       }
     }
-    setSelectedTime('');
+    setSelectedTime("");
   }, [selectedDate, isReschedule]);
 
   useEffect(() => {
     if (selectedTime && !slots.some((slot) => slot.time === selectedTime)) {
-      setSelectedTime('');
+      setSelectedTime("");
     }
   }, [slots, selectedTime]);
 
   const locationOptions = useMemo(
     () => buildLocationOptions(profile?.modalities),
-    [profile?.modalities],
+    [profile?.modalities]
   );
 
   useEffect(() => {
@@ -166,7 +166,9 @@ export default function SchedulePage() {
 
     if (locationOptions.length) {
       const matchById = locationOptions.find((option) =>
-        turno.modalidadId ? Number(option.modalidadId) === Number(turno.modalidadId) : false,
+        turno.modalidadId
+          ? Number(option.modalidadId) === Number(turno.modalidadId)
+          : false
       );
       const match =
         matchById ??
@@ -191,9 +193,9 @@ export default function SchedulePage() {
     () =>
       buildPaymentOptions(
         profile?.paymentMethods ?? [],
-        profile?.insuranceProviders ?? [],
+        profile?.insuranceProviders ?? []
       ),
-    [profile?.paymentMethods, profile?.insuranceProviders],
+    [profile?.paymentMethods, profile?.insuranceProviders]
   );
 
   useEffect(() => {
@@ -214,8 +216,8 @@ export default function SchedulePage() {
     Boolean(selectedPaymentOption?.methodId) && !actionLoading;
 
   const handleBack = () => {
-    if (step === 'payment') {
-      setStep('schedule');
+    if (step === "payment") {
+      setStep("schedule");
       return;
     }
     navigate(-1);
@@ -223,9 +225,9 @@ export default function SchedulePage() {
 
   const handleReset = () => {
     setShowConfirmation(false);
-    setStep('schedule');
-    setSelectedTime('');
-    setSelectedPaymentOptionId('');
+    setStep("schedule");
+    setSelectedTime("");
+    setSelectedPaymentOptionId("");
     setConfirmationData(null);
     resetBookingError();
     resetLinkError();
@@ -244,19 +246,21 @@ export default function SchedulePage() {
   const handleContinue = async () => {
     setFlowError(null);
 
-    if (step === 'schedule') {
+    if (step === "schedule") {
       if (canContinueSchedule) {
-        setStep('payment');
+        setStep("payment");
       }
       return;
     }
 
     if (!pacienteId) {
-      setFlowError('Debes iniciar sesión como paciente para completar el proceso.');
+      setFlowError(
+        "Debes iniciar sesión como paciente para completar el proceso."
+      );
       return;
     }
 
-    if (step === 'payment' && selectedPaymentOption?.methodId) {
+    if (step === "payment" && selectedPaymentOption?.methodId) {
       const payload = {
         pacienteId,
         nutricionistaId: Number(nutricionistaId),
@@ -276,7 +280,7 @@ export default function SchedulePage() {
 
         if (result.success) {
           setConfirmationData({
-            location: selectedLocation?.label ?? 'Sin definir',
+            location: selectedLocation?.label ?? "Sin definir",
             date: selectedDate,
             time: selectedTime,
             payment: selectedPaymentOption.label,
@@ -293,13 +297,16 @@ export default function SchedulePage() {
           });
 
           setConfirmationData({
-            location: selectedLocation?.label ?? 'Sin definir',
+            location: selectedLocation?.label ?? "Sin definir",
             date: selectedDate,
             time: selectedTime,
             payment: selectedPaymentOption.label,
           });
           if (!linkResult.success) {
-            console.error('Error al vincular paciente y profesional:', linkResult.error);
+            console.error(
+              "Error al vincular paciente y profesional:",
+              linkResult.error
+            );
           }
 
           setShowConfirmation(true);
@@ -325,7 +332,7 @@ export default function SchedulePage() {
     if (!slots.length) {
       return (
         <p className="rounded-2xl border border-sand bg-bone p-4 text-sm text-bark/70">
-          No hay turnos disponibles.
+          No hay horarios disponibles.
         </p>
       );
     }
@@ -339,8 +346,8 @@ export default function SchedulePage() {
             onClick={() => setSelectedTime(slot.time)}
             className={`rounded-full px-4 py-2 text-sm font-medium transition ${
               selectedTime === slot.time
-                ? 'bg-clay text-white shadow-md'
-                : 'border border-sand text-bark hover:border-clay hover:text-clay'
+                ? "bg-clay text-white shadow-md"
+                : "border border-sand text-bark hover:border-clay hover:text-clay"
             }`}
           >
             {slot.label ?? `${slot.time} hs`}
@@ -353,12 +360,14 @@ export default function SchedulePage() {
   const renderScheduleStep = () => (
     <div className="rounded-3xl bg-white p-6 shadow-soft">
       <h2 className="text-xl font-semibold text-bark">
-        {isReschedule ? 'Reprogramar consulta' : 'Agendar consulta con nutricionista'}
+        {isReschedule
+          ? "Reprogramar consulta"
+          : "Agendar consulta con nutricionista"}
       </h2>
       <p className="mt-2 text-sm text-bark/70">
         {isReschedule
-          ? 'Actualiza el turno con el horario que mejor se adapte a tu agenda.'
-          : 'Consulta las fechas y horarios disponibles para agendar tu cita.'}
+          ? "Actualiza el turno con el horario que mejor se adapte a tu agenda."
+          : "Consulta las fechas y horarios disponibles para agendar tu cita."}
       </p>
 
       <div className="mt-6 flex flex-col gap-5">
@@ -395,9 +404,10 @@ export default function SchedulePage() {
               {availabilityError}
             </p>
           ) : null}
-          {availabilitySource === 'mock' ? (
+          {availabilitySource === "mock" ? (
             <p className="text-xs text-bark/50">
-              Mostramos horarios simulados hasta conectar con la disponibilidad real.
+              Mostramos horarios simulados hasta conectar con la disponibilidad
+              real.
             </p>
           ) : null}
           {renderSlots()}
@@ -429,13 +439,15 @@ export default function SchedulePage() {
       <h2 className="text-xl font-semibold text-bark">Elegir método de pago</h2>
       <p className="mt-2 text-sm text-bark/70">
         {isReschedule
-          ? 'Podés mantener o actualizar la forma de pago para tu nueva fecha.'
-          : 'Este profesional acepta los siguientes métodos. Selecciona uno para continuar.'}
+          ? "Podés mantener o actualizar la forma de pago para tu nueva fecha."
+          : "Este profesional acepta los siguientes métodos. Selecciona uno para continuar."}
       </p>
 
       {profile?.insuranceProviders?.length ? (
         <div className="mt-4 rounded-2xl border border-sand bg-bone p-4 text-sm text-bark/80">
-          <p className="font-semibold text-bark">Este profesional acepta OBRA SOCIAL.</p>
+          <p className="font-semibold text-bark">
+            Este profesional acepta OBRA SOCIAL.
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {profile.insuranceProviders.map((insurance) => (
               <span
@@ -453,13 +465,14 @@ export default function SchedulePage() {
         <ProfileSection title="Resumen de la cita" className="bg-bone">
           <ul className="text-sm text-bark/80">
             <li>
-              <strong>Lugar:</strong> {selectedLocation?.label ?? 'Sin definir'}
+              <strong>Lugar:</strong> {selectedLocation?.label ?? "Sin definir"}
             </li>
             <li>
-              <strong>Fecha:</strong> {new Date(selectedDate).toLocaleDateString()}
+              <strong>Fecha:</strong>{" "}
+              {new Date(selectedDate).toLocaleDateString()}
             </li>
             <li>
-              <strong>Hora:</strong> {selectedTime || 'Sin seleccionar'}
+              <strong>Hora:</strong> {selectedTime || "Sin seleccionar"}
             </li>
           </ul>
         </ProfileSection>
@@ -483,7 +496,8 @@ export default function SchedulePage() {
           </select>
           {paymentOptions.length === 0 ? (
             <span className="text-xs text-bark/60">
-              Este profesional aún no cargó métodos de pago. Por favor, intenta más tarde.
+              Este profesional aún no cargó métodos de pago. Por favor, intenta
+              más tarde.
             </span>
           ) : null}
         </label>
@@ -495,8 +509,8 @@ export default function SchedulePage() {
         ) : null}
         {!isReschedule && linkError ? (
           <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-            No se pudo guardar el vínculo paciente–profesional. Podrás intentarlo nuevamente más
-            tarde.
+            No se pudo guardar el vínculo paciente–profesional. Podrás
+            intentarlo nuevamente más tarde.
           </p>
         ) : null}
         {isReschedule && rescheduleError ? (
@@ -509,7 +523,7 @@ export default function SchedulePage() {
       <div className="mt-8 flex justify-end gap-3">
         <button
           type="button"
-          onClick={() => setStep('schedule')}
+          onClick={() => setStep("schedule")}
           className="rounded-full border border-sand px-5 py-2 text-sm font-semibold text-bark/70 transition hover:border-clay hover:text-clay"
         >
           Volver
@@ -521,21 +535,21 @@ export default function SchedulePage() {
           className="rounded-full bg-clay px-6 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
         >
           {actionLoading
-            ? 'Guardando...'
+            ? "Guardando..."
             : isReschedule
-              ? 'Guardar cambios'
-              : 'Confirmar turno'}
+            ? "Guardar cambios"
+            : "Confirmar turno"}
         </button>
       </div>
     </div>
   );
 
   const confirmationTitle = isReschedule
-    ? '¡Turno reprogramado con éxito!'
-    : '¡Turno agendado con éxito!';
+    ? "¡Turno reprogramado con éxito!"
+    : "¡Turno agendado con éxito!";
   const confirmationDescription = isReschedule
-    ? 'Actualizamos la información de tu turno. Recibirás la confirmación en tu correo.'
-    : 'Guardamos tu selección. Podrás gestionar el turno desde tu panel de paciente en la próxima iteración.';
+    ? "Actualizamos la información de tu turno. Recibirás la confirmación en tu correo."
+    : "Guardamos tu selección. Podrás gestionar el turno desde tu panel de paciente en la próxima iteración.";
 
   const renderConfirmation = () => (
     <div className="rounded-3xl bg-white p-6 text-center shadow-soft">
@@ -548,7 +562,8 @@ export default function SchedulePage() {
             <strong>Lugar:</strong> {confirmationData.location}
           </p>
           <p>
-            <strong>Fecha:</strong> {new Date(confirmationData.date).toLocaleDateString()}
+            <strong>Fecha:</strong>{" "}
+            {new Date(confirmationData.date).toLocaleDateString()}
           </p>
           <p>
             <strong>Hora:</strong> {confirmationData.time}
@@ -562,7 +577,7 @@ export default function SchedulePage() {
       <div className="mt-8 flex justify-center gap-3">
         <button
           type="button"
-          onClick={() => navigate('/buscar')}
+          onClick={() => navigate("/buscar")}
           className="rounded-full border border-sand px-5 py-2 text-sm font-semibold text-bark/70 transition hover:border-clay hover:text-clay"
         >
           Ir a la búsqueda
@@ -580,7 +595,7 @@ export default function SchedulePage() {
 
   const renderContent = () => {
     if (showConfirmation) return renderConfirmation();
-    if (step === 'payment') return renderPaymentStep();
+    if (step === "payment") return renderPaymentStep();
     return renderScheduleStep();
   };
 
@@ -594,9 +609,9 @@ export default function SchedulePage() {
         >
           <span aria-hidden="true">←</span>
           Volver
-      </button>
+        </button>
         <p className="text-xs uppercase tracking-widest text-bark/60">
-          {isReschedule ? 'CU-001-003 Reprogramar turno' : 'CU-001-003 Agendar turno'}
+          {isReschedule ? "Reprogramar turno" : "Agendar turno"}
         </p>
       </div>
 

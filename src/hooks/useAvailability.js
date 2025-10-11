@@ -3,6 +3,26 @@ import axios from 'axios';
 import { getMockAvailabilityFor } from '../mocks/availability.js';
 import { useAuth } from '../auth/useAuth.js';
 
+const normalizeSlot = (slot) => {
+  if (typeof slot === 'string') {
+    const time = slot.slice(0, 5);
+    return {
+      time,
+      label: `${time} hs`,
+      dia_semana: null,
+    };
+  }
+
+  const time = (slot.time ?? slot.hora ?? '').slice(0, 5);
+  const label = slot.label ?? slot.etiqueta ?? (time ? `${time} hs` : '');
+
+  return {
+    time,
+    label: label || 'Horario',
+    dia_semana: slot.dia_semana ?? slot.dia ?? null,
+  };
+};
+
 export default function useAvailability() {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,18 +44,13 @@ export default function useAvailability() {
 
     const loadMock = () => {
       const mock = getMockAvailabilityFor(nutricionistaId, date);
-      setSlots(mock.slots);
+      setSlots(mock.slots.map(normalizeSlot));
       setSource('mock');
+      setError(null);
     };
 
     if (!shouldUseBackend) {
       loadMock();
-      setLoading(false);
-      return;
-    }
-
-    if (!token) {
-      setError('Debes iniciar sesión para consultar la disponibilidad');
       setLoading(false);
       return;
     }
@@ -46,7 +61,7 @@ export default function useAvailability() {
         {
           params: { fecha: date },
           timeout: 5000,
-          headers: { Authorization: `Bearer ${token}` },
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         },
       );
 
@@ -56,13 +71,23 @@ export default function useAvailability() {
           ? response.data
           : [];
 
-      setSlots(apiSlots.map((slot) => (typeof slot === 'string' ? { time: slot, label: `${slot} hs` } : slot)));
+      const normalized = apiSlots.map(normalizeSlot);
+      setSlots(normalized);
       setSource('backend');
+      setError(normalized.length ? null : 'No hay horarios disponibles');
     } catch (apiError) {
-      loadMock();
-      const message =
-        apiError instanceof Error && apiError.message ? apiError.message : 'No se pudo acceder al backend';
-      setError(`No pudimos obtener los horarios (${message}).`);
+      if (axios.isAxiosError(apiError) && apiError.response?.status === 404) {
+        setSlots([]);
+        setSource('backend');
+        setError('No hay horarios disponibles');
+      } else {
+        loadMock();
+        const message =
+          apiError instanceof Error && apiError.message
+            ? apiError.message
+            : 'No se pudo acceder al backend';
+        setError(`No pudimos obtener los horarios (${message}).`);
+      }
     } finally {
       setLoading(false);
     }
