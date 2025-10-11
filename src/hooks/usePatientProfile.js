@@ -16,10 +16,11 @@ export default function usePatientProfile(pacienteId) {
   const [historial, setHistorial] = useState([]);
   const [planes, setPlanes] = useState([]);
   const [documentos, setDocumentos] = useState([]);
+  const [consultas, setConsultas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [source, setSource] = useState('backend');
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const shouldUseBackend = import.meta.env.VITE_USE_BACKEND === 'true';
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
@@ -30,6 +31,7 @@ export default function usePatientProfile(pacienteId) {
     setHistorial(data.historial?.map(normalizeTurno) ?? []);
     setPlanes(data.planes ?? []);
     setDocumentos(data.documentos ?? []);
+    setConsultas(data.consultas ?? []);
   }, []);
 
   const fetchProfile = useCallback(async () => {
@@ -55,7 +57,7 @@ export default function usePatientProfile(pacienteId) {
     }
 
     try {
-      const [perfilRes, turnosRes, planesRes, documentosRes] = await Promise.all([
+      const baseRequests = [
         axios.get(`${baseUrl}/api/pacientes/${pacienteId}/perfil`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -68,7 +70,24 @@ export default function usePatientProfile(pacienteId) {
         axios.get(`${baseUrl}/api/pacientes/${pacienteId}/documentos`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-      ]);
+      ];
+
+      const includeConsultas = user?.rol === 'nutricionista';
+
+      if (includeConsultas) {
+        baseRequests.push(
+          axios.get(`${baseUrl}/api/pacientes/${pacienteId}/consultas`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        );
+      }
+
+      const responses = await Promise.all(baseRequests);
+
+      const [perfilRes, turnosRes, planesRes, documentosRes, consultasRes] =
+        includeConsultas
+          ? responses
+          : [...responses, { data: { consultas: [] } }];
 
       aplicarDatos({
         contacto: perfilRes.data?.contacto,
@@ -76,6 +95,7 @@ export default function usePatientProfile(pacienteId) {
         historial: turnosRes.data?.historial,
         planes: planesRes.data?.planes,
         documentos: documentosRes.data?.documentos,
+        consultas: consultasRes.data?.consultas,
       });
       setSource('backend');
     } catch (apiError) {
@@ -89,7 +109,7 @@ export default function usePatientProfile(pacienteId) {
     } finally {
       setLoading(false);
     }
-  }, [aplicarDatos, baseUrl, pacienteId, shouldUseBackend, token]);
+  }, [aplicarDatos, baseUrl, pacienteId, shouldUseBackend, token, user?.rol]);
 
   useEffect(() => {
     fetchProfile();
@@ -109,6 +129,7 @@ export default function usePatientProfile(pacienteId) {
     historial,
     planes,
     documentos,
+    consultas,
     loading,
     error,
     source,

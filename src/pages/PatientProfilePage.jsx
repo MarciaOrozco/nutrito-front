@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ProfileSection from '../components/ProfileSection.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import usePatientProfile from '../hooks/usePatientProfile.js';
 import useCancelAppointment from '../hooks/useCancelAppointment.js';
 import useUploadDocuments from '../hooks/useUploadDocuments.js';
 import usePatientProfileForNutri from '../hooks/usePatientProfileForNutri.js';
+import useConsultas from '../hooks/useConsultas.js';
 import { useAuth } from '../auth/useAuth.js';
 
 const formatDate = (value) => {
@@ -18,9 +19,9 @@ const formatDate = (value) => {
 export default function PatientProfilePage({ readOnly = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const params = useParams();
   let pacienteId = readOnly
-    ? Number.parseInt(location.pathname.split('/').pop(), 10)
+    ? Number.parseInt(params.pacienteId ?? '', 10)
     : user?.pacienteId ?? null;
   const nutricionistaId = readOnly ? user?.nutricionistaId ?? null : null;
   const fileInputRef = useRef(null);
@@ -37,15 +38,15 @@ export default function PatientProfilePage({ readOnly = false }) {
   const proximoTurno = readOnly
     ? patientHookForNutri.data?.proximoTurno ?? null
     : patientHookForPatient.proximoTurno;
-  const historial = readOnly
-    ? patientHookForNutri.data?.historial ?? []
-    : patientHookForPatient.historial;
   const planes = readOnly
     ? patientHookForNutri.data?.planes ?? []
     : patientHookForPatient.planes;
   const documentos = readOnly
     ? patientHookForNutri.data?.documentos ?? []
     : patientHookForPatient.documentos;
+  const consultas = readOnly
+    ? patientHookForNutri.data?.consultas ?? []
+    : patientHookForPatient.consultas ?? [];
   const loading = readOnly
     ? patientHookForNutri.loading
     : patientHookForPatient.loading;
@@ -55,7 +56,8 @@ export default function PatientProfilePage({ readOnly = false }) {
   const source = readOnly ? 'backend' : patientHookForPatient.source;
   const refresh = readOnly ? patientHookForNutri.refresh : patientHookForPatient.refresh;
 
-  const canManage = !readOnly;
+  const canManageOwnProfile = !readOnly;
+  const canManageConsultas = readOnly;
 
   const {
     cancelAppointment,
@@ -71,12 +73,15 @@ export default function PatientProfilePage({ readOnly = false }) {
     resetError: resetUploadError,
   } = useUploadDocuments();
 
+  const { createConsulta, deleteConsulta } = useConsultas();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [consultaSeleccionada, setConsultaSeleccionada] = useState(null);
+  const [showDeleteConsulta, setShowDeleteConsulta] = useState(false);
 
-  const safeHistorial = historial ?? [];
   const safePlanes = planes ?? [];
   const safeDocumentos = documentos ?? [];
+  const safeConsultas = consultas ?? [];
 
   const closeCancelDialog = () => {
     setShowCancelDialog(false);
@@ -102,6 +107,30 @@ export default function PatientProfilePage({ readOnly = false }) {
     navigate(`/agendar/${proximoTurno.nutricionista.id}?turnoId=${proximoTurno.id}`, {
       state: { turno: proximoTurno },
     });
+  };
+
+  const handleNuevaConsulta = async () => {
+    if (!pacienteId) return;
+    try {
+      const { consultaId } = await createConsulta({ pacienteId });
+      navigate(`/consulta/${consultaId}?paciente=${pacienteId}`);
+    } catch {
+      setFeedback('No pudimos crear la consulta. Intenta nuevamente.');
+    }
+  };
+
+  const handleBorrarConsulta = (consultaId) => {
+    setConsultaSeleccionada(consultaId);
+    setShowDeleteConsulta(true);
+  };
+
+  const confirmarBorrarConsulta = async () => {
+    if (!consultaSeleccionada) return;
+    await deleteConsulta(consultaSeleccionada, 'Eliminada desde el panel');
+    setFeedback('Consulta eliminada correctamente.');
+    setShowDeleteConsulta(false);
+    setConsultaSeleccionada(null);
+    refresh();
   };
 
   const handleOpenCancelDialog = () => {
@@ -148,11 +177,22 @@ export default function PatientProfilePage({ readOnly = false }) {
     <section className="flex w-full flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-bark">Mi perfil</h1>
+          <h1 className="text-2xl font-semibold text-bark">
+            {readOnly ? 'Ficha del paciente' : 'Mi perfil'}
+          </h1>
           <p className="text-sm text-bark/60">
             Gestioná tus datos, turnos y documentación desde un solo lugar.
           </p>
         </div>
+        {readOnly ? (
+          <button
+            type="button"
+            onClick={handleNuevaConsulta}
+            className="rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            Nueva consulta
+          </button>
+        ) : null}
       </header>
 
       {error ? (
@@ -193,7 +233,7 @@ export default function PatientProfilePage({ readOnly = false }) {
           </ProfileSection>
 
           <ProfileSection title="Documentos">
-            {uploadError && canManage ? (
+            {uploadError && canManageOwnProfile ? (
               <p className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                 {uploadError}
               </p>
@@ -210,7 +250,7 @@ export default function PatientProfilePage({ readOnly = false }) {
                 <p>No se cargaron documentos todavía.</p>
               )}
             </div>
-            {canManage ? (
+            {canManageOwnProfile ? (
               <>
                 <button
                   type="button"
@@ -244,7 +284,7 @@ export default function PatientProfilePage({ readOnly = false }) {
                   </span>
                 </div>
 
-                {canManage ? (
+                {canManageOwnProfile ? (
                   <>
                     <div className="flex flex-wrap gap-3">
                       <button
@@ -299,21 +339,43 @@ export default function PatientProfilePage({ readOnly = false }) {
           </ProfileSection>
 
           <ProfileSection title="Consultas pasadas" description="Historial de atenciones">
-            {safeHistorial.length ? (
+            {safeConsultas.length ? (
               <div className="flex flex-col gap-3">
-                {safeHistorial.map((turno) => (
-                  <div key={turno.id} className="flex items-center justify-between rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80">
+                {safeConsultas.map((consulta) => (
+                  <div key={consulta.consulta_id} className="flex items-center justify-between rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-bark">{turno.modalidad}</span>
-                      <span>{formatDate(turno.fecha)} · {turno.hora}</span>
+                      <span className="font-semibold text-bark">Consulta #{consulta.consulta_id}</span>
+                      <span>{formatDate(consulta.fecha_consulta)} · {consulta.estado}</span>
                     </div>
-                    <button
-                      type="button"
-                      className="rounded-full bg-[#739273] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                      onClick={() => setFeedback('Visualización de consulta no implementada en esta iteración.')}
-                    >
-                      Ver
-                    </button>
+                    {readOnly ? (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-[#739273] px-3 py-1 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
+                          onClick={() => navigate(`/consulta/${consulta.consulta_id}?paciente=${pacienteId}`)}
+                        >
+                          Ver
+                        </button>
+                      {canManageConsultas ? (
+                          <>
+                            <button
+                              type="button"
+                              className="rounded-full border border-[#739273] px-3 py-1 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
+                              onClick={() => navigate(`/consulta/${consulta.consulta_id}?paciente=${pacienteId}`)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-full border border-[#D9534F] px-3 py-1 text-sm font-semibold text-[#D9534F] transition hover:bg-[#D9534F] hover:text-white"
+                              onClick={() => handleBorrarConsulta(consulta.consulta_id)}
+                            >
+                              Borrar
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -332,6 +394,15 @@ export default function PatientProfilePage({ readOnly = false }) {
         confirmClassName="bg-[#D9534F] text-white"
         onConfirm={handleCancelTurno}
         onClose={closeCancelDialog}
+      />
+      <ConfirmDialog
+        open={showDeleteConsulta}
+        title="¿Deseás eliminar esta consulta?"
+        description="La información asociada se perderá."
+        confirmLabel="Eliminar"
+        confirmClassName="bg-[#D9534F] text-white"
+        onConfirm={confirmarBorrarConsulta}
+        onClose={() => setShowDeleteConsulta(false)}
       />
     </section>
   );

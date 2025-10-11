@@ -25,14 +25,26 @@ export default function usePatientProfileForNutri(nutricionistaId, pacienteId) {
     }
 
     try {
-      const response = await axios.get(
-        `${baseUrl}/api/nutricionistas/${nutricionistaId}/pacientes/${pacienteId}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        },
-      );
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-      setData(response.data);
+      const [perfilRes, turnosRes, planesRes, documentosRes, consultasRes] = await Promise.all([
+        axios.get(`${baseUrl}/api/nutricionistas/${nutricionistaId}/pacientes/${pacienteId}`, {
+          headers,
+        }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/turnos`, { headers }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/planes`, { headers }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/documentos`, { headers }),
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/consultas`, { headers }),
+      ]);
+
+      setData({
+        contacto: perfilRes.data?.contacto,
+        proximoTurno: turnosRes.data?.proximoTurno,
+        historial: turnosRes.data?.historial,
+        planes: planesRes.data?.planes,
+        documentos: documentosRes.data?.documentos,
+        consultas: consultasRes.data?.consultas,
+      });
     } catch (apiError) {
       const message =
         apiError instanceof Error && apiError.message

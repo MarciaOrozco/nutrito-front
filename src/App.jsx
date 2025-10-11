@@ -4,6 +4,7 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import SchedulePage from "./pages/SchedulePage.jsx";
 import PatientProfilePage from "./pages/PatientProfilePage.jsx";
 import NutritionistDashboard from "./pages/NutritionistDashboard.jsx";
+import ConsultaPage from "./pages/ConsultaPage.jsx";
 import LoginPage from "./auth/LoginPage.jsx";
 import RegisterPage from "./auth/RegisterPage.jsx";
 import PrivateRoute from "./auth/PrivateRoute.jsx";
@@ -100,6 +101,7 @@ function App() {
                 path="/paciente/:pacienteId"
                 element={<PatientProfilePage readOnly />}
               />
+              <Route path="/consulta/:consultaId" element={<ConsultaPage />} />
             </Route>
           </Routes>
         </main>
