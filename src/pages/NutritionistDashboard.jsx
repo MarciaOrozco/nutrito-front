@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useLinkedPatients from '../hooks/useLinkedPatients.js';
+import useNutritionistAppointments from '../hooks/useNutritionistAppointments.js';
 import { useAuth } from '../auth/useAuth.js';
 
 const formatDate = (value) => {
@@ -15,6 +16,11 @@ export default function NutritionistDashboard() {
   const nutricionistaId = user?.nutricionistaId ?? null;
   const { patients, loading, error } = useLinkedPatients(nutricionistaId);
   const [searchTerm, setSearchTerm] = useState('');
+  const {
+    appointments,
+    loading: appointmentsLoading,
+    error: appointmentsError,
+  } = useNutritionistAppointments(nutricionistaId);
 
   const filteredPatients = useMemo(() => {
     const normalizedTerm = searchTerm.trim().toLowerCase();
@@ -26,11 +32,6 @@ export default function NutritionistDashboard() {
       return fullName.includes(normalizedTerm) || email.includes(normalizedTerm);
     });
   }, [patients, searchTerm]);
-
-  const mockTurns = [
-    { id: 1, paciente: 'Marcia Orozco', fecha: '2025-02-15' },
-    { id: 2, paciente: 'Laura Fernández', fecha: '2025-02-18' },
-  ];
 
   if (!nutricionistaId) {
     return (
@@ -58,6 +59,11 @@ export default function NutritionistDashboard() {
       {error ? (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           {error}
+        </div>
+      ) : null}
+      {appointmentsError ? (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          {appointmentsError}
         </div>
       ) : null}
 
@@ -117,15 +123,29 @@ export default function NutritionistDashboard() {
           </p>
 
           <div className="mt-5 flex flex-col gap-3">
-            {mockTurns.map((turn) => (
-              <div
-                key={turn.id}
-                className="flex items-center justify-between rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80"
-              >
-                <span>{turn.paciente}</span>
-                <span>{formatDate(turn.fecha)}</span>
-              </div>
-            ))}
+            {appointmentsLoading ? (
+              <div className="h-32 animate-pulse rounded-2xl bg-bone" />
+            ) : appointments.length ? (
+              appointments.map((turn) => (
+                <div
+                  key={turn.id}
+                  className="flex items-center justify-between rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-bark">
+                      {turn.paciente?.nombre ?? ''} {turn.paciente?.apellido ?? ''}
+                    </span>
+                    <span className="text-xs text-bark/50">{turn.paciente?.email}</span>
+                  </div>
+                  <div className="text-right text-sm text-bark/70">
+                    <p>{formatDate(turn.fecha)}</p>
+                    {turn.hora ? <p>{turn.hora} hs</p> : null}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-bark/60">No hay turnos próximos registrados.</p>
+            )}
           </div>
         </section>
       </div>
