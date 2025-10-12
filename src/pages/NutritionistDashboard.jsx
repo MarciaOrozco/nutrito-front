@@ -4,6 +4,7 @@ import useLinkedPatients from '../hooks/useLinkedPatients.js';
 import useNutritionistAppointments from '../hooks/useNutritionistAppointments.js';
 import { useAuth } from '../auth/useAuth.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import RescheduleDialog from '../components/RescheduleDialog.jsx';
 
 const formatDate = (value) => {
   if (!value) return '';
@@ -27,6 +28,8 @@ export default function NutritionistDashboard() {
   const [processingTurnoId, setProcessingTurnoId] = useState(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [turnoPendienteCancelacion, setTurnoPendienteCancelacion] = useState(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [turnoPendienteReprogramacion, setTurnoPendienteReprogramacion] = useState(null);
 
   const showFeedback = (message, type = 'message') => {
     const toastApi = window?.toast;
@@ -56,39 +59,37 @@ export default function NutritionistDashboard() {
     }
   };
 
-  const handleReschedule = async (turn) => {
+  const handleReschedule = (turn) => {
     if (!turn?.id) return;
+    setTurnoPendienteReprogramacion(turn);
+    setShowRescheduleDialog(true);
+  };
 
-    const defaultDate = turn.fecha ?? '';
-    const defaultTime = turn.hora ?? '';
-
-    const nuevaFecha = window.prompt('Nueva fecha (YYYY-MM-DD)', defaultDate);
-    if (!nuevaFecha) return;
-
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(nuevaFecha)) {
-      showFeedback('Ingresá la fecha en formato YYYY-MM-DD.', 'error');
+  const closeRescheduleDialog = () => {
+    if (
+      processingTurnoId &&
+      turnoPendienteReprogramacion?.id === processingTurnoId
+    ) {
       return;
     }
+    setShowRescheduleDialog(false);
+    setTurnoPendienteReprogramacion(null);
+  };
 
-    const nuevaHora = window.prompt('Nueva hora (HH:MM)', defaultTime);
-    if (!nuevaHora) return;
-
-    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
-    if (!timeRegex.test(nuevaHora)) {
-      showFeedback('Ingresá la hora en formato HH:MM (24 hs).', 'error');
-      return;
-    }
+  const handleRescheduleConfirm = async ({ fecha, hora }) => {
+    if (!turnoPendienteReprogramacion?.id || !fecha || !hora) return;
 
     try {
-      setProcessingTurnoId(turn.id);
-      const result = await rescheduleAppointment(turn.id, {
-        fecha: nuevaFecha,
-        hora: nuevaHora,
+      setProcessingTurnoId(turnoPendienteReprogramacion.id);
+      const result = await rescheduleAppointment(turnoPendienteReprogramacion.id, {
+        fecha,
+        hora,
       });
 
       if (result.success) {
         showFeedback('Turno reprogramado con éxito.', 'success');
+        setShowRescheduleDialog(false);
+        setTurnoPendienteReprogramacion(null);
       } else {
         throw result.error ?? new Error('No se pudo reprogramar el turno.');
       }
@@ -327,6 +328,16 @@ export default function NutritionistDashboard() {
         confirmClassName="bg-[#D9534F] text-white"
         onConfirm={handleConfirmCancel}
         onClose={closeCancelDialog}
+      />
+      <RescheduleDialog
+        open={showRescheduleDialog}
+        turno={turnoPendienteReprogramacion}
+        nutricionistaId={nutricionistaId}
+        onClose={closeRescheduleDialog}
+        onConfirm={handleRescheduleConfirm}
+        isProcessing={
+          Boolean(processingTurnoId && processingTurnoId === turnoPendienteReprogramacion?.id)
+        }
       />
     </section>
   );
