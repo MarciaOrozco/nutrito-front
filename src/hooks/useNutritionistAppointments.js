@@ -57,5 +57,92 @@ export default function useNutritionistAppointments(nutricionistaId) {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  return { appointments, loading, error, refresh: fetchAppointments };
+  const cancelAppointment = useCallback(
+    async (turnoId, { motivo } = {}) => {
+      if (!turnoId) {
+        return { success: false, error: new Error('turnoId es obligatorio') };
+      }
+
+      if (!nutricionistaId) {
+        return { success: false, error: new Error('nutricionistaId no disponible') };
+      }
+
+      if (!shouldUseBackend) {
+        setAppointments((prev) => prev.filter((turno) => turno.id !== turnoId));
+        return { success: true };
+      }
+
+      try {
+        await axios.patch(
+          `${baseUrl}/api/nutricionistas/${nutricionistaId}/turnos/${turnoId}/cancelar`,
+          { motivo },
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          },
+        );
+
+        await fetchAppointments();
+        return { success: true };
+      } catch (apiError) {
+        const message =
+          apiError?.response?.data?.error ??
+          (apiError instanceof Error ? apiError.message : 'Error al cancelar el turno.');
+        return { success: false, error: new Error(message) };
+      }
+    },
+    [nutricionistaId, token, fetchAppointments],
+  );
+
+  const rescheduleAppointment = useCallback(
+    async (turnoId, { fecha, hora }) => {
+      if (!turnoId) {
+        return { success: false, error: new Error('turnoId es obligatorio') };
+      }
+
+      if (!nutricionistaId) {
+        return { success: false, error: new Error('nutricionistaId no disponible') };
+      }
+
+      if (!fecha || !hora) {
+        return { success: false, error: new Error('Fecha y hora son obligatorias') };
+      }
+
+      if (!shouldUseBackend) {
+        setAppointments((prev) =>
+          prev.map((turno) =>
+            turno.id === turnoId ? { ...turno, fecha, hora } : turno,
+          ),
+        );
+        return { success: true };
+      }
+
+      try {
+        await axios.put(
+          `${baseUrl}/api/nutricionistas/${nutricionistaId}/turnos/${turnoId}/reprogramar`,
+          { nuevaFecha: fecha, nuevaHora: hora },
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          },
+        );
+
+        await fetchAppointments();
+        return { success: true };
+      } catch (apiError) {
+        const message =
+          apiError?.response?.data?.error ??
+          (apiError instanceof Error ? apiError.message : 'Error al reprogramar el turno.');
+        return { success: false, error: new Error(message) };
+      }
+    },
+    [nutricionistaId, token, fetchAppointments],
+  );
+
+  return {
+    appointments,
+    loading,
+    error,
+    refresh: fetchAppointments,
+    cancelAppointment,
+    rescheduleAppointment,
+  };
 }
