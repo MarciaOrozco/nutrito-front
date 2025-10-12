@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useLinkedPatients from '../hooks/useLinkedPatients.js';
 import { useAuth } from '../auth/useAuth.js';
@@ -13,6 +14,18 @@ export default function NutritionistDashboard() {
   const { user } = useAuth();
   const nutricionistaId = user?.nutricionistaId ?? null;
   const { patients, loading, error } = useLinkedPatients(nutricionistaId);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredPatients = useMemo(() => {
+    const normalizedTerm = searchTerm.trim().toLowerCase();
+    if (!normalizedTerm) return patients;
+
+    return patients.filter((patient) => {
+      const fullName = `${patient.nombre ?? ''} ${patient.apellido ?? ''}`.toLowerCase();
+      const email = (patient.email ?? '').toLowerCase();
+      return fullName.includes(normalizedTerm) || email.includes(normalizedTerm);
+    });
+  }, [patients, searchTerm]);
 
   const mockTurns = [
     { id: 1, paciente: 'Marcia Orozco', fecha: '2025-02-15' },
@@ -54,12 +67,21 @@ export default function NutritionistDashboard() {
           <p className="mt-2 text-sm text-bark/60">
             Seleccioná un paciente para ver su ficha completa.
           </p>
+          <div className="mt-4">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar por nombre o email"
+              className="w-full rounded-xl border border-sand bg-white px-4 py-2 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
+            />
+          </div>
 
           <div className="mt-5 flex flex-col gap-4">
             {loading ? (
               <div className="h-32 animate-pulse rounded-2xl bg-bone" />
-            ) : patients.length ? (
-              patients.map((patient) => (
+            ) : filteredPatients.length ? (
+              filteredPatients.map((patient) => (
                 <div
                   key={patient.pacienteId}
                   className="flex items-center justify-between rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80"
@@ -78,6 +100,10 @@ export default function NutritionistDashboard() {
                   </Link>
                 </div>
               ))
+            ) : patients.length ? (
+              <p className="text-sm text-bark/60">
+                No se encontraron pacientes que coincidan con tu búsqueda.
+              </p>
             ) : (
               <p className="text-sm text-bark/60">Todavía no tenés pacientes vinculados.</p>
             )}

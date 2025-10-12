@@ -236,6 +236,62 @@ export default function SchedulePage() {
     prefillDoneRef.current = false;
   };
 
+  const showCalendarError = () => {
+    const message = "No se pudo generar el evento de calendario.";
+
+    if (typeof window === "undefined") return;
+
+    if (window.toast?.error) {
+      window.toast.error(message);
+      return;
+    }
+
+    if (window.toast?.message) {
+      window.toast.message(message);
+      return;
+    }
+
+    if (window.alert) {
+      window.alert(message);
+    }
+  };
+
+  const handleAddToCalendar = () => {
+    if (!confirmationData) {
+      showCalendarError();
+      return;
+    }
+
+    const { calendarLink, icsContent } = confirmationData;
+
+    if (calendarLink) {
+      window.open(calendarLink, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (icsContent) {
+      try {
+        const blob = new Blob([icsContent], {
+          type: "text/calendar;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "turno.ics";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("No se pudo descargar el archivo ICS:", error);
+        showCalendarError();
+      }
+      return;
+    }
+
+    showCalendarError();
+  };
+
   const handleChangePayment = (value) => {
     resetBookingError();
     resetLinkError();
@@ -284,6 +340,8 @@ export default function SchedulePage() {
             date: selectedDate,
             time: selectedTime,
             payment: selectedPaymentOption.label,
+            calendarLink: result.calendarLink ?? null,
+            icsContent: result.icsContent ?? null,
           });
           setShowConfirmation(true);
         }
@@ -301,6 +359,8 @@ export default function SchedulePage() {
             date: selectedDate,
             time: selectedTime,
             payment: selectedPaymentOption.label,
+            calendarLink: result.calendarLink ?? null,
+            icsContent: result.icsContent ?? null,
           });
           if (!linkResult.success) {
             console.error(
@@ -572,6 +632,15 @@ export default function SchedulePage() {
             <strong>Método de pago:</strong> {confirmationData.payment}
           </p>
         </div>
+      ) : null}
+      {confirmationData ? (
+        <button
+          type="button"
+          onClick={handleAddToCalendar}
+          className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#739273] px-4 py-2 font-medium text-white shadow-sm transition hover:opacity-90"
+        >
+          Agregar al calendario
+        </button>
       ) : null}
 
       <div className="mt-8 flex justify-center gap-3">

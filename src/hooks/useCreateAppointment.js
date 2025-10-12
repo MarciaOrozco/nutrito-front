@@ -2,6 +2,19 @@ import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../auth/useAuth.js';
 
+const extractCalendarLink = (messages = []) => {
+  const line = messages.find((message) =>
+    typeof message === 'string' && message.includes('https://calendar.google.com'),
+  );
+
+  if (!line) {
+    return null;
+  }
+
+  const match = line.match(/https:\/\/[^\s]+/g);
+  return match?.[0] ?? null;
+};
+
 export default function useCreateAppointment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -26,6 +39,8 @@ export default function useCreateAppointment() {
       return {
         success: true,
         data: { turnoId: Date.now() },
+        calendarLink: null,
+        icsContent: null,
       };
     }
 
@@ -34,10 +49,16 @@ export default function useCreateAppointment() {
         timeout: 5000,
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
+      const data = response.data ?? {};
+      const calendarLink =
+        data.calendarLink ?? extractCalendarLink(data.notificaciones);
+      const icsContent = data.icsContent ?? null;
 
       return {
         success: true,
-        data: response.data,
+        data,
+        calendarLink,
+        icsContent,
       };
     } catch (apiError) {
       setError('No se pudo registrar el método de pago. Intente nuevamente.');
