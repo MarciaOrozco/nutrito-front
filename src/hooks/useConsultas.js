@@ -58,12 +58,12 @@ export default function useConsultas() {
     return response.data;
   };
 
-  const deleteConsulta = async (consultaId, motivo) => {
+  const deleteConsulta = async (consultaId, { motivo, detalle } = {}) => {
     if (!shouldUseBackend) return { success: true };
 
     const response = await axios.delete(`${baseUrl}/api/consultas/${consultaId}`, {
       headers: authHeaders,
-      data: { motivo },
+      data: { motivo, detalle },
     });
 
     return response.data;

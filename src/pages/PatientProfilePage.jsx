@@ -80,6 +80,10 @@ export default function PatientProfilePage({ readOnly = false }) {
   const [feedback, setFeedback] = useState(null);
   const [consultaSeleccionada, setConsultaSeleccionada] = useState(null);
   const [showDeleteConsulta, setShowDeleteConsulta] = useState(false);
+  const [deleteMotivo, setDeleteMotivo] = useState("Error de carga");
+  const [deleteDetalle, setDeleteDetalle] = useState("");
+  const [deleteDialogError, setDeleteDialogError] = useState(null);
+  const [deletingConsulta, setDeletingConsulta] = useState(false);
 
   const safePlanes = planes ?? [];
   const safeDocumentos = documentos ?? [];
@@ -124,18 +128,67 @@ export default function PatientProfilePage({ readOnly = false }) {
     }
   };
 
-  const handleBorrarConsulta = (consultaId) => {
+  const openDeleteConsultaDialog = (consultaId) => {
     setConsultaSeleccionada(consultaId);
+    setDeleteMotivo("Error de carga");
+    setDeleteDetalle("");
+    setDeleteDialogError(null);
+    setDeletingConsulta(false);
     setShowDeleteConsulta(true);
   };
 
-  const confirmarBorrarConsulta = async () => {
-    if (!consultaSeleccionada) return;
-    await deleteConsulta(consultaSeleccionada, "Eliminada desde el panel");
-    setFeedback("Consulta eliminada correctamente.");
+  const closeDeleteConsultaDialog = () => {
+    if (deletingConsulta) return;
     setShowDeleteConsulta(false);
     setConsultaSeleccionada(null);
-    refresh();
+    setDeleteDialogError(null);
+    setDeleteDetalle("");
+    setDeleteMotivo("Error de carga");
+  };
+
+  const handleBorrarConsulta = (consultaId) => {
+    openDeleteConsultaDialog(consultaId);
+  };
+
+  const confirmarBorrarConsulta = async () => {
+    if (!consultaSeleccionada || deletingConsulta) return;
+    if (!deleteMotivo) {
+      setDeleteDialogError("Seleccioná un motivo de eliminación.");
+      return;
+    }
+    if (deleteMotivo === "Otra" && !deleteDetalle.trim()) {
+      setDeleteDialogError("Indicá un detalle para el motivo seleccionado.");
+      return;
+    }
+
+    let deletedSuccessfully = false;
+
+    try {
+      setDeletingConsulta(true);
+      setDeleteDialogError(null);
+      const result = await deleteConsulta(consultaSeleccionada, {
+        motivo: deleteMotivo,
+        detalle: deleteMotivo === "Otra" ? deleteDetalle.trim() : undefined,
+      });
+
+      if (result?.success) {
+        setFeedback("Consulta eliminada correctamente.");
+        deletedSuccessfully = true;
+      } else {
+        setDeleteDialogError("No se pudo eliminar la consulta. Intentá nuevamente.");
+      }
+    } catch (error) {
+      const message =
+        error?.response?.data?.error ??
+        (error instanceof Error ? error.message : "No se pudo eliminar la consulta.");
+      setDeleteDialogError(message);
+    } finally {
+      setDeletingConsulta(false);
+      if (deletedSuccessfully) {
+        closeDeleteConsultaDialog();
+        refresh();
+      }
+    }
   };
 
   const handleOpenCancelDialog = () => {
@@ -463,11 +516,43 @@ export default function PatientProfilePage({ readOnly = false }) {
         open={showDeleteConsulta}
         title="¿Deseás eliminar esta consulta?"
         description="La información asociada se perderá."
-        confirmLabel="Eliminar"
+        confirmLabel={deletingConsulta ? "Eliminando..." : "Eliminar"}
         confirmClassName="bg-[#D9534F] text-white"
         onConfirm={confirmarBorrarConsulta}
-        onClose={() => setShowDeleteConsulta(false)}
-      />
+        onClose={closeDeleteConsultaDialog}
+        confirmDisabled={deletingConsulta}
+        cancelDisabled={deletingConsulta}
+      >
+        <label className="flex flex-col gap-2 text-sm font-medium text-bark">
+          Motivo de eliminación
+          <select
+            value={deleteMotivo}
+            onChange={(event) => setDeleteMotivo(event.target.value)}
+            disabled={deletingConsulta}
+            className="rounded-xl border border-sand bg-white px-4 py-2 text-sm font-normal text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="Error de carga">Error de carga</option>
+            <option value="Duplicada">Duplicada</option>
+            <option value="Otra">Otra</option>
+          </select>
+        </label>
+        {deleteMotivo === "Otra" ? (
+          <label className="mt-4 flex flex-col gap-2 text-sm font-medium text-bark">
+            Detalle
+            <textarea
+              value={deleteDetalle}
+              onChange={(event) => setDeleteDetalle(event.target.value)}
+              rows={3}
+              disabled={deletingConsulta}
+              className="rounded-xl border border-sand bg-white px-4 py-2 text-sm font-normal text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30 disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="Contanos brevemente por qué querés eliminarla."
+            />
+          </label>
+        ) : null}
+        {deleteDialogError ? (
+          <p className="mt-3 text-sm text-red-500">{deleteDialogError}</p>
+        ) : null}
+      </ConfirmDialog>
     </section>
   );
 }

@@ -7,6 +7,9 @@ export default function ConfirmDialog({
   onConfirm,
   onClose,
   confirmClassName = 'bg-clay text-white',
+  children,
+  confirmDisabled = false,
+  cancelDisabled = false,
 }) {
   if (!open) return null;
 
@@ -17,19 +20,22 @@ export default function ConfirmDialog({
         {description ? (
           <p className="mt-3 text-sm text-bark/70">{description}</p>
         ) : null}
+        {children ? <div className="mt-4">{children}</div> : null}
 
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
-            className="rounded-full border border-sand px-5 py-2 text-sm font-medium text-bark/80 transition hover:border-clay hover:text-clay"
+            className="rounded-full border border-sand px-5 py-2 text-sm font-medium text-bark/80 transition hover:border-clay hover:text-clay disabled:cursor-not-allowed disabled:opacity-60"
             onClick={onClose}
+            disabled={cancelDisabled}
           >
             {cancelLabel}
           </button>
           <button
             type="button"
-            className={`rounded-full px-5 py-2 text-sm font-semibold transition hover:opacity-80 ${confirmClassName}`}
+            className={`rounded-full px-5 py-2 text-sm font-semibold transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60 ${confirmClassName}`}
             onClick={onConfirm}
+            disabled={confirmDisabled}
           >
             {confirmLabel}
           </button>
