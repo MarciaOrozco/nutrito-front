@@ -219,12 +219,20 @@ export default function NutritionistDashboard() {
                     </span>
                     <span className="text-xs text-bark/50">{patient.email}</span>
                   </div>
-                  <Link
-                    to={`/paciente/${patient.pacienteId}`}
-                    className="rounded-full border border-[#739273] px-4 py-2 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
-                  >
-                    Ver perfil
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/paciente/${patient.pacienteId}`}
+                      className="rounded-full border border-[#739273] px-4 py-2 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
+                    >
+                      Ver perfil
+                    </Link>
+                    <Link
+                      to={`/crear-plan/${patient.pacienteId}`}
+                      className="rounded-full border border-sand px-4 py-2 text-sm font-semibold text-bark/70 transition hover:border-clay hover:text-clay"
+                    >
+                      Crear plan
+                    </Link>
+                  </div>
                 </div>
               ))
             ) : patients.length ? (

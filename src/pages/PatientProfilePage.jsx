@@ -7,6 +7,7 @@ import useCancelAppointment from "../hooks/useCancelAppointment.js";
 import useUploadDocuments from "../hooks/useUploadDocuments.js";
 import usePatientProfileForNutri from "../hooks/usePatientProfileForNutri.js";
 import useConsultas from "../hooks/useConsultas.js";
+import usePlan from "../hooks/usePlan.js";
 import { useAuth } from "../auth/useAuth.js";
 
 const formatDate = (value) => {
@@ -76,6 +77,7 @@ export default function PatientProfilePage({ readOnly = false }) {
   } = useUploadDocuments();
 
   const { createConsulta, deleteConsulta } = useConsultas();
+  const { exportPlan } = usePlan();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [consultaSeleccionada, setConsultaSeleccionada] = useState(null);
@@ -84,6 +86,8 @@ export default function PatientProfilePage({ readOnly = false }) {
   const [deleteDetalle, setDeleteDetalle] = useState("");
   const [deleteDialogError, setDeleteDialogError] = useState(null);
   const [deletingConsulta, setDeletingConsulta] = useState(false);
+  const [downloadingPlanId, setDownloadingPlanId] = useState(null);
+  const [planDownloadError, setPlanDownloadError] = useState(null);
 
   const safePlanes = planes ?? [];
   const safeDocumentos = documentos ?? [];
@@ -116,6 +120,36 @@ export default function PatientProfilePage({ readOnly = false }) {
         state: { turno: proximoTurno },
       }
     );
+  };
+
+  const downloadPlanFile = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  };
+
+  const handleDownloadPlan = async (planId) => {
+    try {
+      setPlanDownloadError(null);
+      setDownloadingPlanId(planId);
+      const result = await exportPlan(planId);
+      if (result?.blob) {
+        downloadPlanFile(result.blob, result.filename ?? `plan-${planId}.pdf`);
+        setFeedback("El plan se descargó correctamente.");
+      }
+    } catch (error) {
+      const message =
+        error?.response?.data?.error ??
+        (error instanceof Error
+          ? error.message
+          : "No fue posible descargar el plan. Intenta nuevamente.");
+      setPlanDownloadError(message);
+    } finally {
+      setDownloadingPlanId(null);
+    }
   };
 
   const handleNuevaConsulta = async () => {
@@ -395,6 +429,11 @@ export default function PatientProfilePage({ readOnly = false }) {
             title="Mis planes"
             description="Planes alimentarios disponibles"
           >
+            {planDownloadError ? (
+              <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                {planDownloadError}
+              </div>
+            ) : null}
             {safePlanes.length ? (
               <div className="flex flex-col gap-3">
                 {safePlanes.map((plan) => (
@@ -404,24 +443,51 @@ export default function PatientProfilePage({ readOnly = false }) {
                   >
                     <div className="flex flex-col">
                       <span className="font-semibold text-bark">
-                        Plan #{plan.id}
+                        {plan.titulo ? plan.titulo : `Plan #${plan.id}`}
                       </span>
                       <span>
                         {plan.estado ?? "Sin estado"} ·{" "}
                         {formatDate(plan.fechaCreacion)}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      className="rounded-full bg-[#739273] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                      onClick={() =>
-                        setFeedback(
-                          "Descarga de plan no implementada en el entorno de ejemplo."
-                        )
-                      }
-                    >
-                      Descargar
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {readOnly ? (
+                        <>
+                          <button
+                            type="button"
+                            className="rounded-full border border-[#739273] px-3 py-1 text-xs font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
+                            onClick={() =>
+                              navigate(`/editar-plan/${plan.id}`, {
+                                state: { from: "perfil" },
+                              })
+                            }
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-sand px-3 py-1 text-xs font-semibold text-bark/70 transition hover:border-clay hover:text-clay"
+                            onClick={() =>
+                              navigate(`/previsualizar-plan/${plan.id}`, {
+                                state: { from: "perfil" },
+                              })
+                            }
+                          >
+                            Ver
+                          </button>
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="rounded-full bg-[#739273] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => handleDownloadPlan(plan.id)}
+                        disabled={downloadingPlanId === plan.id}
+                      >
+                        {downloadingPlanId === plan.id
+                          ? "Descargando..."
+                          : "Descargar"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

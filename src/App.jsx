@@ -9,6 +9,9 @@ import LoginPage from "./auth/LoginPage.jsx";
 import RegisterPage from "./auth/RegisterPage.jsx";
 import PrivateRoute from "./auth/PrivateRoute.jsx";
 import { useAuth } from "./auth/useAuth.js";
+import CreatePlanPage from "./pages/CreatePlanPage.jsx";
+import EditPlanPage from "./pages/EditPlanPage.jsx";
+import PreviewPlanPage from "./pages/PreviewPlanPage.jsx";
 
 function App() {
   const { isAuthenticated, logout, user } = useAuth();
@@ -102,6 +105,12 @@ function App() {
                 element={<PatientProfilePage readOnly />}
               />
               <Route path="/consulta/:consultaId" element={<ConsultaPage />} />
+              <Route path="/crear-plan/:pacienteId" element={<CreatePlanPage />} />
+              <Route path="/editar-plan/:planId" element={<EditPlanPage />} />
+              <Route
+                path="/previsualizar-plan/:planId"
+                element={<PreviewPlanPage />}
+              />
             </Route>
           </Routes>
         </main>
