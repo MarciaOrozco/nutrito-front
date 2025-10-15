@@ -8,6 +8,7 @@ import NotasForm from "../components/consultas/NotasForm.jsx";
 import DocumentosForm from "../components/consultas/DocumentosForm.jsx";
 import EvolucionChart from "../components/consultas/EvolucionChart.jsx";
 import ExportForm from "../components/consultas/ExportForm.jsx";
+import ProgramarProximaCita from "../components/consultas/ProgramarProximaCita.jsx";
 import useConsultas from "../hooks/useConsultas.js";
 
 const tabs = [
@@ -52,13 +53,8 @@ export default function ConsultaPage() {
   const { consultaId } = useParams();
   const [search] = useSearchParams();
   const pacienteId = search.get("paciente");
-  const {
-    getConsulta,
-    updateConsulta,
-    uploadDocuments,
-    exportConsulta,
-    scheduleNext,
-  } = useConsultas();
+  const { getConsulta, updateConsulta, uploadDocuments, exportConsulta } =
+    useConsultas();
 
   const [activeTab, setActiveTab] = useState("informacion");
   const [data, setData] = useState(defaultData);
@@ -66,7 +62,6 @@ export default function ConsultaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSections, setSelectedSections] = useState([]);
-  const [turnoPayload, setTurnoPayload] = useState({ fecha: "", hora: "" });
   const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
@@ -141,15 +136,6 @@ export default function ConsultaPage() {
       setFeedback("PDF generado");
     } catch {
       setFeedback("No pudimos generar el PDF");
-    }
-  };
-
-  const handleScheduleNext = async () => {
-    try {
-      await scheduleNext(consultaId, turnoPayload);
-      setFeedback("Próxima cita agendada");
-    } catch {
-      setFeedback("Error al agendar la próxima cita");
     }
   };
 
@@ -234,48 +220,12 @@ export default function ConsultaPage() {
               onToggle={toggleSection}
               onExport={handleExport}
             />
-            <div className="rounded-2xl bg-bone p-4">
-              <h3 className="text-sm font-semibold text-bark">
-                Programar próxima cita
-              </h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-2 text-sm text-bark">
-                  Fecha
-                  <input
-                    type="date"
-                    value={turnoPayload.fecha}
-                    onChange={(event) =>
-                      setTurnoPayload((prev) => ({
-                        ...prev,
-                        fecha: event.target.value,
-                      }))
-                    }
-                    className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
-                  />
-                </label>
-                <label className="flex flex-col gap-2 text-sm text-bark">
-                  Hora
-                  <input
-                    type="time"
-                    value={turnoPayload.hora}
-                    onChange={(event) =>
-                      setTurnoPayload((prev) => ({
-                        ...prev,
-                        hora: event.target.value,
-                      }))
-                    }
-                    className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
-                  />
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={handleScheduleNext}
-                className="mt-4 rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Agendar próxima cita
-              </button>
-            </div>
+            <ProgramarProximaCita
+              pacienteId={data?.paciente_id ?? pacienteId ?? null}
+              nutricionistaId={data?.nutricionista_id ?? null}
+              consultaId={consultaId ? Number(consultaId) : null}
+              onSuccess={() => setFeedback("Próxima cita programada correctamente")}
+            />
           </div>
         ) : null}
       </div>
