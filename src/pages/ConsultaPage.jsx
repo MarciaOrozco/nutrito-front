@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import ConsultaTabs from "../components/consultas/ConsultaTabs.jsx";
 import ConsultaInfoForm from "../components/consultas/ConsultaInfoForm.jsx";
@@ -88,11 +88,6 @@ export default function ConsultaPage() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultaId]);
-
-  const evolucionData = useMemo(() => {
-    if (!data.historial_peso) return [];
-    return data.historial_peso;
-  }, [data.historial_peso]);
 
   const handleUpdate = (partial) => {
     setData((prev) => ({ ...prev, ...partial }));
@@ -230,7 +225,7 @@ export default function ConsultaPage() {
           <NotasForm data={data} onChange={handleUpdate} />
         ) : null}
         {activeTab === "evolucion" ? (
-          <EvolucionChart data={evolucionData} />
+          <EvolucionChart pacienteId={pacienteId} />
         ) : null}
         {activeTab === "exportar" ? (
           <div className="flex flex-col gap-6">
