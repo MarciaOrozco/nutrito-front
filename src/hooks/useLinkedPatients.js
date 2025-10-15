@@ -19,8 +19,22 @@ export default function useLinkedPatients(nutricionistaId) {
 
     if (!shouldUseBackend) {
       setPatients([
-        { pacienteId: 1, nombre: 'Marcia', apellido: 'Orozco' },
-        { pacienteId: 2, nombre: 'Laura', apellido: 'Fernández' },
+        {
+          pacienteId: 1,
+          nombre: 'Marcia',
+          apellido: 'Orozco',
+          email: 'marcia@example.com',
+          estadoRegistro: 'activo',
+          estadoRegistroLabel: 'Activo',
+        },
+        {
+          pacienteId: 2,
+          nombre: 'Laura',
+          apellido: 'Fernández',
+          email: 'laura@example.com',
+          estadoRegistro: 'pendiente',
+          estadoRegistroLabel: 'No registrado',
+        },
       ]);
       setLoading(false);
       return;
@@ -34,7 +48,22 @@ export default function useLinkedPatients(nutricionistaId) {
         },
       );
 
-      setPatients(response.data?.pacientes ?? []);
+      const pacientes = (response.data?.pacientes ?? []).map((paciente) => {
+        const estado = paciente?.estadoRegistro ?? null;
+        return {
+          ...paciente,
+          estadoRegistro: estado,
+          estadoRegistroLabel:
+            paciente?.estadoRegistroLabel ??
+            (estado === 'pendiente'
+              ? 'No registrado'
+              : estado
+              ? `${estado.slice(0, 1).toUpperCase()}${estado.slice(1)}`
+              : null),
+        };
+      });
+
+      setPatients(pacientes);
     } catch (apiError) {
       const message =
         apiError instanceof Error && apiError.message

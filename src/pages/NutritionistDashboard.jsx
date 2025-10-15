@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useLinkedPatients from '../hooks/useLinkedPatients.js';
+import useCreateManualPatient from '../hooks/useCreateManualPatient.js';
 import useNutritionistAppointments from '../hooks/useNutritionistAppointments.js';
 import { useAuth } from '../auth/useAuth.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
@@ -16,7 +17,13 @@ const formatDate = (value) => {
 export default function NutritionistDashboard() {
   const { user } = useAuth();
   const nutricionistaId = user?.nutricionistaId ?? null;
-  const { patients, loading, error } = useLinkedPatients(nutricionistaId);
+  const { patients, loading, error, refresh: refreshPatients } = useLinkedPatients(nutricionistaId);
+  const {
+    createManualPatient,
+    loading: creatingPatient,
+    error: createPatientError,
+    resetError: resetCreatePatientError,
+  } = useCreateManualPatient(nutricionistaId);
   const [searchTerm, setSearchTerm] = useState('');
   const {
     appointments,
@@ -30,6 +37,13 @@ export default function NutritionistDashboard() {
   const [turnoPendienteCancelacion, setTurnoPendienteCancelacion] = useState(null);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [turnoPendienteReprogramacion, setTurnoPendienteReprogramacion] = useState(null);
+  const [showCreatePatientModal, setShowCreatePatientModal] = useState(false);
+  const [newPatientData, setNewPatientData] = useState({
+    nombre: '',
+    apellido: '',
+    email: '',
+  });
+  const [createPatientFeedback, setCreatePatientFeedback] = useState(null);
 
   const showFeedback = (message, type = 'message') => {
     const toastApi = window?.toast;
@@ -56,6 +70,79 @@ export default function NutritionistDashboard() {
       window.alert?.(message);
     } else {
       console.log(message);
+    }
+  };
+
+  const openCreatePatientModal = () => {
+    resetCreatePatientError();
+    setCreatePatientFeedback(null);
+    setShowCreatePatientModal(true);
+  };
+
+  const closeCreatePatientModal = () => {
+    if (creatingPatient) return;
+    setShowCreatePatientModal(false);
+    setNewPatientData({ nombre: '', apellido: '', email: '' });
+    setCreatePatientFeedback(null);
+    resetCreatePatientError();
+  };
+
+  const handleChangePatientField = (field) => (event) => {
+    setNewPatientData((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleSubmitNewPatient = async (event) => {
+    event.preventDefault();
+    if (!nutricionistaId) {
+      setCreatePatientFeedback('No se encontró el identificador del profesional.');
+      return;
+    }
+
+    const trimmed = {
+      nombre: newPatientData.nombre.trim(),
+      apellido: newPatientData.apellido.trim(),
+      email: newPatientData.email.trim().toLowerCase(),
+    };
+
+    if (!trimmed.nombre || !trimmed.apellido || !trimmed.email) {
+      setCreatePatientFeedback('Completá todos los campos.');
+      return;
+    }
+
+    const emailPattern =
+      /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+    if (!emailPattern.test(trimmed.email)) {
+      setCreatePatientFeedback('Ingresá un email válido.');
+      return;
+    }
+
+    try {
+      setCreatePatientFeedback(null);
+      const response = await createManualPatient(trimmed);
+      if (response?.paciente) {
+        showFeedback('Paciente agregado e invitación enviada.', 'success');
+      } else {
+        showFeedback('Paciente agregado correctamente.', 'success');
+      }
+      closeCreatePatientModal();
+      await refreshPatients();
+    } catch (apiError) {
+      const status = apiError?.response?.status;
+      if (status === 409) {
+        setCreatePatientFeedback('El correo ya está en uso.');
+        showFeedback('El correo ya está en uso.', 'error');
+      } else {
+        const message =
+          apiError?.response?.data?.error ??
+          (apiError instanceof Error
+            ? apiError.message
+            : 'No se pudo completar el registro.');
+        setCreatePatientFeedback(message);
+        showFeedback(message, 'error');
+      }
     }
   };
 
@@ -211,15 +298,30 @@ export default function NutritionistDashboard() {
               filteredPatients.map((patient) => (
                 <div
                   key={patient.pacienteId}
-                  className="flex items-center justify-between rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80"
+                  className="flex flex-col gap-3 rounded-2xl bg-bone px-4 py-3 text-sm text-bark/80 md:flex-row md:items-center md:justify-between"
                 >
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-bark">
-                      {patient.nombre} {patient.apellido}
-                    </span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-bark">
+                        {patient.nombre} {patient.apellido}
+                      </span>
+                      {patient.estadoRegistro ? (
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            patient.estadoRegistro === 'pendiente'
+                              ? 'bg-sand/60 text-bark/80'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {patient.estadoRegistro === 'pendiente'
+                            ? 'No registrado'
+                            : patient.estadoRegistroLabel ?? 'Activo'}
+                        </span>
+                      ) : null}
+                    </div>
                     <span className="text-xs text-bark/50">{patient.email}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Link
                       to={`/paciente/${patient.pacienteId}`}
                       className="rounded-full border border-[#739273] px-4 py-2 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
@@ -243,6 +345,13 @@ export default function NutritionistDashboard() {
               <p className="text-sm text-bark/60">Todavía no tenés pacientes vinculados.</p>
             )}
           </div>
+          <button
+            type="button"
+            onClick={openCreatePatientModal}
+            className="mt-4 inline-flex items-center justify-center rounded-full border border-dashed border-clay/50 px-4 py-2 text-sm font-semibold text-clay transition hover:border-clay hover:text-white hover:bg-clay"
+          >
+            Agregar paciente nuevo
+          </button>
         </section>
 
         <section className="rounded-3xl bg-white p-6 shadow-soft">
@@ -347,6 +456,86 @@ export default function NutritionistDashboard() {
           Boolean(processingTurnoId && processingTurnoId === turnoPendienteReprogramacion?.id)
         }
       />
+      {showCreatePatientModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-semibold text-bark">Agregar paciente manualmente</h3>
+                <p className="mt-1 text-sm text-bark/60">
+                  Completá los datos básicos para enviar la invitación y crear una ficha temporal.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCreatePatientModal}
+                className="rounded-full border border-sand px-3 py-1 text-xs font-semibold text-bark/60 transition hover:border-bark/40 hover:text-bark"
+              >
+                Cerrar
+              </button>
+            </div>
+            <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmitNewPatient}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-sm text-bark/70">
+                  Nombre
+                  <input
+                    type="text"
+                    value={newPatientData.nombre}
+                    onChange={handleChangePatientField('nombre')}
+                    className="rounded-xl border border-sand px-3 py-2 text-bark focus:border-clay focus:outline-none"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-bark/70">
+                  Apellido
+                  <input
+                    type="text"
+                    value={newPatientData.apellido}
+                    onChange={handleChangePatientField('apellido')}
+                    className="rounded-xl border border-sand px-3 py-2 text-bark focus:border-clay focus:outline-none"
+                    required
+                  />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1 text-sm text-bark/70">
+                Correo electrónico
+                <input
+                  type="email"
+                  value={newPatientData.email}
+                  onChange={handleChangePatientField('email')}
+                  className="rounded-xl border border-sand px-3 py-2 text-bark focus:border-clay focus:outline-none"
+                  required
+                />
+              </label>
+              {(createPatientFeedback || createPatientError) ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                  {createPatientFeedback ?? createPatientError}
+                </div>
+              ) : null}
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeCreatePatientModal}
+                  className="rounded-full border border-sand px-4 py-2 text-sm font-semibold text-bark/70 transition hover:border-bark/50 hover:text-bark"
+                  disabled={creatingPatient}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingPatient}
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-5 py-2 text-sm font-semibold text-white transition hover:bg-clay/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {creatingPatient ? (
+                    <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  ) : null}
+                  {creatingPatient ? 'Enviando invitación...' : 'Guardar y enviar invitación'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

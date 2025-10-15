@@ -1,22 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from './useAuth.js';
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./useAuth.js";
 
 export default function RegisterPage() {
   const { register, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [formValues, setFormValues] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
-    password: '',
-    telefono: '',
+    nombre: "",
+    apellido: "",
+    email: "",
+    password: "",
+    telefono: "",
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const nextPath = new URLSearchParams(location.search).get('next') ?? '/mi-perfil';
+  const nextPath =
+    new URLSearchParams(location.search).get("next") ?? "/mi-perfil";
 
   useEffect(() => {
     if (isAuthenticated && !loading) {
@@ -34,10 +35,16 @@ export default function RegisterPage() {
     setSubmitting(true);
     setError(null);
 
-    const result = await register(formValues);
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+
+    const result = await register({
+      ...formValues,
+      token,
+    });
 
     if (!result.success) {
-      setError(result.error ?? 'No se pudo completar el registro');
+      setError(result.error ?? "No se pudo completar el registro");
       setSubmitting(false);
       return;
     }
@@ -50,7 +57,8 @@ export default function RegisterPage() {
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-soft">
         <h1 className="text-2xl font-semibold text-bark">Crear cuenta</h1>
         <p className="mt-2 text-sm text-bark/60">
-          Registrate para reservar consultas y acceder a tus planes personalizados.
+          Registrate para reservar consultas y acceder a tus planes
+          personalizados.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
@@ -129,12 +137,12 @@ export default function RegisterPage() {
             disabled={submitting}
             className="mt-2 rounded-full bg-clay px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
           >
-            {submitting ? 'Creando cuenta...' : 'Crear cuenta'}
+            {submitting ? "Creando cuenta..." : "Crear cuenta"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-bark/60">
-          ¿Ya tenés cuenta?{' '}
+          ¿Ya tenés cuenta?{" "}
           <Link to="/login" className="font-semibold text-clay hover:underline">
             Iniciar sesión
           </Link>
