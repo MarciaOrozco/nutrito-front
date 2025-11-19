@@ -53,6 +53,15 @@ function App() {
                       Panel profesional
                     </Link>
                   ) : null}
+                  {user?.rol === "nutricionista" && user?.nutricionistaId ? (
+                    <Link
+                      to={`/perfil/${user.nutricionistaId}`}
+                      className="rounded-full border border-clay px-5 py-2 text-sm font-semibold text-clay transition hover:bg-clay hover:text-white"
+                    >
+                      Mi perfil
+                    </Link>
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={logout}
@@ -105,7 +114,10 @@ function App() {
                 element={<PatientProfilePage readOnly />}
               />
               <Route path="/consulta/:consultaId" element={<ConsultaPage />} />
-              <Route path="/crear-plan/:pacienteId" element={<CreatePlanPage />} />
+              <Route
+                path="/crear-plan/:pacienteId"
+                element={<CreatePlanPage />}
+              />
               <Route path="/editar-plan/:planId" element={<EditPlanPage />} />
               <Route
                 path="/previsualizar-plan/:planId"

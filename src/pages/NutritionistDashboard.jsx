@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import useLinkedPatients from '../hooks/useLinkedPatients.js';
-import useCreateManualPatient from '../hooks/useCreateManualPatient.js';
-import useNutritionistAppointments from '../hooks/useNutritionistAppointments.js';
-import { useAuth } from '../auth/useAuth.js';
-import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import RescheduleDialog from '../components/RescheduleDialog.jsx';
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import useLinkedPatients from "../hooks/useLinkedPatients.js";
+import useCreateManualPatient from "../hooks/useCreateManualPatient.js";
+import useNutritionistAppointments from "../hooks/useNutritionistAppointments.js";
+import { useAuth } from "../auth/useAuth.js";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import RescheduleDialog from "../components/RescheduleDialog.jsx";
 
 const formatDate = (value) => {
-  if (!value) return '';
+  if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
@@ -17,14 +17,19 @@ const formatDate = (value) => {
 export default function NutritionistDashboard() {
   const { user } = useAuth();
   const nutricionistaId = user?.nutricionistaId ?? null;
-  const { patients, loading, error, refresh: refreshPatients } = useLinkedPatients(nutricionistaId);
+  const {
+    patients,
+    loading,
+    error,
+    refresh: refreshPatients,
+  } = useLinkedPatients(nutricionistaId);
   const {
     createManualPatient,
     loading: creatingPatient,
     error: createPatientError,
     resetError: resetCreatePatientError,
   } = useCreateManualPatient(nutricionistaId);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const {
     appointments,
     loading: appointmentsLoading,
@@ -34,39 +39,41 @@ export default function NutritionistDashboard() {
   } = useNutritionistAppointments(nutricionistaId);
   const [processingTurnoId, setProcessingTurnoId] = useState(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [turnoPendienteCancelacion, setTurnoPendienteCancelacion] = useState(null);
+  const [turnoPendienteCancelacion, setTurnoPendienteCancelacion] =
+    useState(null);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
-  const [turnoPendienteReprogramacion, setTurnoPendienteReprogramacion] = useState(null);
+  const [turnoPendienteReprogramacion, setTurnoPendienteReprogramacion] =
+    useState(null);
   const [showCreatePatientModal, setShowCreatePatientModal] = useState(false);
   const [newPatientData, setNewPatientData] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
+    nombre: "",
+    apellido: "",
+    email: "",
   });
   const [createPatientFeedback, setCreatePatientFeedback] = useState(null);
 
-  const showFeedback = (message, type = 'message') => {
+  const showFeedback = (message, type = "message") => {
     const toastApi = window?.toast;
     if (toastApi) {
-      if (type === 'success' && typeof toastApi.success === 'function') {
+      if (type === "success" && typeof toastApi.success === "function") {
         toastApi.success(message);
         return;
       }
-      if (type === 'error' && typeof toastApi.error === 'function') {
+      if (type === "error" && typeof toastApi.error === "function") {
         toastApi.error(message);
         return;
       }
-      if (typeof toastApi[type] === 'function') {
+      if (typeof toastApi[type] === "function") {
         toastApi[type](message);
         return;
       }
-      if (typeof toastApi.message === 'function') {
+      if (typeof toastApi.message === "function") {
         toastApi.message(message);
         return;
       }
     }
 
-    if (type === 'error') {
+    if (type === "error") {
       window.alert?.(message);
     } else {
       console.log(message);
@@ -82,7 +89,7 @@ export default function NutritionistDashboard() {
   const closeCreatePatientModal = () => {
     if (creatingPatient) return;
     setShowCreatePatientModal(false);
-    setNewPatientData({ nombre: '', apellido: '', email: '' });
+    setNewPatientData({ nombre: "", apellido: "", email: "" });
     setCreatePatientFeedback(null);
     resetCreatePatientError();
   };
@@ -97,7 +104,9 @@ export default function NutritionistDashboard() {
   const handleSubmitNewPatient = async (event) => {
     event.preventDefault();
     if (!nutricionistaId) {
-      setCreatePatientFeedback('No se encontró el identificador del profesional.');
+      setCreatePatientFeedback(
+        "No se encontró el identificador del profesional."
+      );
       return;
     }
 
@@ -108,14 +117,14 @@ export default function NutritionistDashboard() {
     };
 
     if (!trimmed.nombre || !trimmed.apellido || !trimmed.email) {
-      setCreatePatientFeedback('Completá todos los campos.');
+      setCreatePatientFeedback("Completá todos los campos.");
       return;
     }
 
     const emailPattern =
       /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
     if (!emailPattern.test(trimmed.email)) {
-      setCreatePatientFeedback('Ingresá un email válido.');
+      setCreatePatientFeedback("Ingresá un email válido.");
       return;
     }
 
@@ -123,25 +132,25 @@ export default function NutritionistDashboard() {
       setCreatePatientFeedback(null);
       const response = await createManualPatient(trimmed);
       if (response?.paciente) {
-        showFeedback('Paciente agregado e invitación enviada.', 'success');
+        showFeedback("Paciente agregado e invitación enviada.", "success");
       } else {
-        showFeedback('Paciente agregado correctamente.', 'success');
+        showFeedback("Paciente agregado correctamente.", "success");
       }
       closeCreatePatientModal();
       await refreshPatients();
     } catch (apiError) {
       const status = apiError?.response?.status;
       if (status === 409) {
-        setCreatePatientFeedback('El correo ya está en uso.');
-        showFeedback('El correo ya está en uso.', 'error');
+        setCreatePatientFeedback("El correo ya está en uso.");
+        showFeedback("El correo ya está en uso.", "error");
       } else {
         const message =
           apiError?.response?.data?.error ??
           (apiError instanceof Error
             ? apiError.message
-            : 'No se pudo completar el registro.');
+            : "No se pudo completar el registro.");
         setCreatePatientFeedback(message);
-        showFeedback(message, 'error');
+        showFeedback(message, "error");
       }
     }
   };
@@ -168,22 +177,27 @@ export default function NutritionistDashboard() {
 
     try {
       setProcessingTurnoId(turnoPendienteReprogramacion.id);
-      const result = await rescheduleAppointment(turnoPendienteReprogramacion.id, {
-        fecha,
-        hora,
-      });
+      const result = await rescheduleAppointment(
+        turnoPendienteReprogramacion.id,
+        {
+          fecha,
+          hora,
+        }
+      );
 
       if (result.success) {
-        showFeedback('Turno reprogramado con éxito.', 'success');
+        showFeedback("Turno reprogramado con éxito.", "success");
         setShowRescheduleDialog(false);
         setTurnoPendienteReprogramacion(null);
       } else {
-        throw result.error ?? new Error('No se pudo reprogramar el turno.');
+        throw result.error ?? new Error("No se pudo reprogramar el turno.");
       }
     } catch (error) {
       showFeedback(
-        error instanceof Error ? error.message : 'No se pudo reprogramar el turno.',
-        'error',
+        error instanceof Error
+          ? error.message
+          : "No se pudo reprogramar el turno.",
+        "error"
       );
     } finally {
       setProcessingTurnoId(null);
@@ -197,7 +211,10 @@ export default function NutritionistDashboard() {
   };
 
   const closeCancelDialog = () => {
-    if (processingTurnoId && turnoPendienteCancelacion?.id === processingTurnoId) {
+    if (
+      processingTurnoId &&
+      turnoPendienteCancelacion?.id === processingTurnoId
+    ) {
       return;
     }
     setShowCancelDialog(false);
@@ -210,20 +227,22 @@ export default function NutritionistDashboard() {
     try {
       setProcessingTurnoId(turnoPendienteCancelacion.id);
       const result = await cancelAppointment(turnoPendienteCancelacion.id, {
-        motivo: 'Cancelado por el profesional desde el panel.',
+        motivo: "Cancelado por el profesional desde el panel.",
       });
 
       if (result.success) {
-        showFeedback('Turno cancelado correctamente.', 'success');
+        showFeedback("Turno cancelado correctamente.", "success");
         setShowCancelDialog(false);
         setTurnoPendienteCancelacion(null);
       } else {
-        throw result.error ?? new Error('No se pudo cancelar el turno.');
+        throw result.error ?? new Error("No se pudo cancelar el turno.");
       }
     } catch (error) {
       showFeedback(
-        error instanceof Error ? error.message : 'No se pudo cancelar el turno.',
-        'error',
+        error instanceof Error
+          ? error.message
+          : "No se pudo cancelar el turno.",
+        "error"
       );
     } finally {
       setProcessingTurnoId(null);
@@ -235,9 +254,13 @@ export default function NutritionistDashboard() {
     if (!normalizedTerm) return patients;
 
     return patients.filter((patient) => {
-      const fullName = `${patient.nombre ?? ''} ${patient.apellido ?? ''}`.toLowerCase();
-      const email = (patient.email ?? '').toLowerCase();
-      return fullName.includes(normalizedTerm) || email.includes(normalizedTerm);
+      const fullName = `${patient.nombre ?? ""} ${
+        patient.apellido ?? ""
+      }`.toLowerCase();
+      const email = (patient.email ?? "").toLowerCase();
+      return (
+        fullName.includes(normalizedTerm) || email.includes(normalizedTerm)
+      );
     });
   }, [patients, searchTerm]);
 
@@ -245,10 +268,13 @@ export default function NutritionistDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bone px-4">
         <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-soft">
-          <h1 className="text-2xl font-semibold text-bark">Panel profesional</h1>
+          <h1 className="text-2xl font-semibold text-bark">
+            Panel aprofesional
+          </h1>
           <p className="mt-4 text-sm text-bark/70">
-            No encontramos tu perfil de nutricionista. Verificá con el administrador de la
-            plataforma si tu cuenta está configurada correctamente.
+            No encontramos tu perfil de nutricionista. Verificá con el
+            administrador de la plataforma si tu cuenta está configurada
+            correctamente.
           </p>
         </div>
       </div>
@@ -259,8 +285,12 @@ export default function NutritionistDashboard() {
     <section className="flex w-full flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-bark">Panel profesional</h1>
-          <p className="text-sm text-bark/60">Consultá tus pacientes y turnos próximos.</p>
+          <h1 className="text-2xl font-semibold text-bark">
+            Panel profesional
+          </h1>
+          <p className="text-sm text-bark/60">
+            Consultá tus pacientes y turnos próximos.
+          </p>
         </div>
       </header>
 
@@ -308,18 +338,20 @@ export default function NutritionistDashboard() {
                       {patient.estadoRegistro ? (
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            patient.estadoRegistro === 'pendiente'
-                              ? 'bg-sand/60 text-bark/80'
-                              : 'bg-emerald-100 text-emerald-700'
+                            patient.estadoRegistro === "pendiente"
+                              ? "bg-sand/60 text-bark/80"
+                              : "bg-emerald-100 text-emerald-700"
                           }`}
                         >
-                          {patient.estadoRegistro === 'pendiente'
-                            ? 'No registrado'
-                            : patient.estadoRegistroLabel ?? 'Activo'}
+                          {patient.estadoRegistro === "pendiente"
+                            ? "No registrado"
+                            : patient.estadoRegistroLabel ?? "Activo"}
                         </span>
                       ) : null}
                     </div>
-                    <span className="text-xs text-bark/50">{patient.email}</span>
+                    <span className="text-xs text-bark/50">
+                      {patient.email}
+                    </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
@@ -342,7 +374,9 @@ export default function NutritionistDashboard() {
                 No se encontraron pacientes que coincidan con tu búsqueda.
               </p>
             ) : (
-              <p className="text-sm text-bark/60">Todavía no tenés pacientes vinculados.</p>
+              <p className="text-sm text-bark/60">
+                Todavía no tenés pacientes vinculados.
+              </p>
             )}
           </div>
           <button
@@ -371,9 +405,12 @@ export default function NutritionistDashboard() {
                 >
                   <div className="flex flex-col">
                     <span className="font-semibold text-bark">
-                      {turn.paciente?.nombre ?? ''} {turn.paciente?.apellido ?? ''}
+                      {turn.paciente?.nombre ?? ""}{" "}
+                      {turn.paciente?.apellido ?? ""}
                     </span>
-                    <span className="text-xs text-bark/50">{turn.paciente?.email}</span>
+                    <span className="text-xs text-bark/50">
+                      {turn.paciente?.email}
+                    </span>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right text-sm text-bark/70">
@@ -431,7 +468,9 @@ export default function NutritionistDashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-bark/60">No hay turnos próximos registrados.</p>
+              <p className="text-sm text-bark/60">
+                No hay turnos próximos registrados.
+              </p>
             )}
           </div>
         </section>
@@ -452,18 +491,22 @@ export default function NutritionistDashboard() {
         nutricionistaId={nutricionistaId}
         onClose={closeRescheduleDialog}
         onConfirm={handleRescheduleConfirm}
-        isProcessing={
-          Boolean(processingTurnoId && processingTurnoId === turnoPendienteReprogramacion?.id)
-        }
+        isProcessing={Boolean(
+          processingTurnoId &&
+            processingTurnoId === turnoPendienteReprogramacion?.id
+        )}
       />
       {showCreatePatientModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-bark">Agregar paciente manualmente</h3>
+                <h3 className="text-xl font-semibold text-bark">
+                  Agregar paciente manualmente
+                </h3>
                 <p className="mt-1 text-sm text-bark/60">
-                  Completá los datos básicos para enviar la invitación y crear una ficha temporal.
+                  Completá los datos básicos para enviar la invitación y crear
+                  una ficha temporal.
                 </p>
               </div>
               <button
@@ -474,14 +517,17 @@ export default function NutritionistDashboard() {
                 Cerrar
               </button>
             </div>
-            <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmitNewPatient}>
+            <form
+              className="mt-4 flex flex-col gap-4"
+              onSubmit={handleSubmitNewPatient}
+            >
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm text-bark/70">
                   Nombre
                   <input
                     type="text"
                     value={newPatientData.nombre}
-                    onChange={handleChangePatientField('nombre')}
+                    onChange={handleChangePatientField("nombre")}
                     className="rounded-xl border border-sand px-3 py-2 text-bark focus:border-clay focus:outline-none"
                     required
                   />
@@ -491,7 +537,7 @@ export default function NutritionistDashboard() {
                   <input
                     type="text"
                     value={newPatientData.apellido}
-                    onChange={handleChangePatientField('apellido')}
+                    onChange={handleChangePatientField("apellido")}
                     className="rounded-xl border border-sand px-3 py-2 text-bark focus:border-clay focus:outline-none"
                     required
                   />
@@ -502,12 +548,12 @@ export default function NutritionistDashboard() {
                 <input
                   type="email"
                   value={newPatientData.email}
-                  onChange={handleChangePatientField('email')}
+                  onChange={handleChangePatientField("email")}
                   className="rounded-xl border border-sand px-3 py-2 text-bark focus:border-clay focus:outline-none"
                   required
                 />
               </label>
-              {(createPatientFeedback || createPatientError) ? (
+              {createPatientFeedback || createPatientError ? (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
                   {createPatientFeedback ?? createPatientError}
                 </div>
@@ -529,7 +575,9 @@ export default function NutritionistDashboard() {
                   {creatingPatient ? (
                     <span className="inline-flex h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                   ) : null}
-                  {creatingPatient ? 'Enviando invitación...' : 'Guardar y enviar invitación'}
+                  {creatingPatient
+                    ? "Enviando invitación..."
+                    : "Guardar y enviar invitación"}
                 </button>
               </div>
             </form>
