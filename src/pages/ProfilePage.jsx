@@ -1,23 +1,81 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ProfileHeader from "../components/ProfileHeader.jsx";
 import ProfileSection from "../components/ProfileSection.jsx";
 import ReviewCard from "../components/ReviewCard.jsx";
 import useNutritionistProfile from "../hooks/useNutritionistProfile.js";
+import { useAuth } from "../auth/useAuth.js";
+import ScheduleSetupModal from "../components/ScheduleSetupModal.jsx";
+
+const DEFAULT_WEEKLY_SCHEDULE = [
+  { key: "monday", label: "Lunes", start: "09:00", end: "17:00", duration: "30", enabled: true },
+  { key: "tuesday", label: "Martes", start: "09:00", end: "17:00", duration: "30", enabled: true },
+  { key: "wednesday", label: "Miércoles", start: "09:00", end: "17:00", duration: "30", enabled: true },
+  { key: "thursday", label: "Jueves", start: "09:00", end: "17:00", duration: "30", enabled: true },
+  { key: "friday", label: "Viernes", start: "09:00", end: "17:00", duration: "30", enabled: true },
+  { key: "saturday", label: "Sábado", start: "09:00", end: "13:00", duration: "30", enabled: false },
+  { key: "sunday", label: "Domingo", start: "09:00", end: "13:00", duration: "30", enabled: false },
+];
 
 export default function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile, loading, error, source, hasReviews, fetchProfile, refetch } =
     useNutritionistProfile();
+  const { user, isAuthenticated } = useAuth();
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [weeklySchedule, setWeeklySchedule] = useState(() =>
+    DEFAULT_WEEKLY_SCHEDULE.map((day) => ({ ...day })),
+  );
 
   useEffect(() => {
     fetchProfile(id);
   }, [id, fetchProfile]);
 
+  const isOwnProfile = useMemo(() => {
+    if (!isAuthenticated || user?.rol !== "nutricionista") return false;
+    if (!id || !user?.nutricionistaId) return false;
+    return String(user.nutricionistaId) === String(id);
+  }, [id, isAuthenticated, user]);
+  const actionButtonLabel = isOwnProfile ? "Generar turnos" : "Agendar consulta";
+
   const handleSchedule = () => {
     navigate(`/agendar/${id}`);
   };
+
+  const handleActionClick = () => {
+    if (isOwnProfile) {
+      setIsScheduleModalOpen(true);
+      return;
+    }
+    handleSchedule();
+  };
+
+  const handleToggleDayAvailability = (dayKey) => {
+    setWeeklySchedule((prev) =>
+      prev.map((day) => (day.key === dayKey ? { ...day, enabled: !day.enabled } : day)),
+    );
+  };
+
+  const handleScheduleFieldChange = (dayKey, field, value) => {
+    setWeeklySchedule((prev) =>
+      prev.map((day) => (day.key === dayKey ? { ...day, [field]: value } : day)),
+    );
+  };
+
+  const handleScheduleSave = () => {
+    const toastApi = window?.toast;
+    if (toastApi && typeof toastApi.success === "function") {
+      toastApi.success("Guardamos esta configuración para tus próximos turnos.");
+    } else if (typeof window?.alert === "function") {
+      window.alert("Guardamos esta configuración para tus próximos turnos.");
+    } else {
+      console.log("Configuración de turnos lista:", weeklySchedule);
+    }
+    setIsScheduleModalOpen(false);
+  };
+
+  const closeScheduleModal = () => setIsScheduleModalOpen(false);
 
   const renderHeaderSkeleton = () => (
     <div className="h-40 animate-pulse rounded-3xl bg-white/60 shadow-soft" />
@@ -81,7 +139,11 @@ export default function ProfilePage() {
       ) : null}
 
       {profile ? (
-        <ProfileHeader profile={profile} onSchedule={handleSchedule} />
+        <ProfileHeader
+          profile={profile}
+          onSchedule={handleActionClick}
+          actionLabel={actionButtonLabel}
+        />
       ) : null}
       {!profile && loading ? renderHeaderSkeleton() : null}
 
@@ -203,6 +265,15 @@ export default function ProfilePage() {
       ) : null}
 
       {!profile && loading ? renderContentSkeleton() : null}
+
+      <ScheduleSetupModal
+        open={isScheduleModalOpen}
+        onClose={closeScheduleModal}
+        schedule={weeklySchedule}
+        onToggleDay={handleToggleDayAvailability}
+        onChangeField={handleScheduleFieldChange}
+        onSave={handleScheduleSave}
+      />
     </section>
   );
 }

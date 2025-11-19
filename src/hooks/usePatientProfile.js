@@ -20,7 +20,7 @@ export default function usePatientProfile(pacienteId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [source, setSource] = useState('backend');
-  const { token, user } = useAuth();
+  const { token } = useAuth();
 
   const shouldUseBackend = import.meta.env.VITE_USE_BACKEND === 'true';
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
@@ -57,7 +57,7 @@ export default function usePatientProfile(pacienteId) {
     }
 
     try {
-      const baseRequests = [
+      const responses = await Promise.all([
         axios.get(`${baseUrl}/api/pacientes/${pacienteId}/perfil`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -70,24 +70,13 @@ export default function usePatientProfile(pacienteId) {
         axios.get(`${baseUrl}/api/pacientes/${pacienteId}/documentos`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-      ];
-
-      const includeConsultas = user?.rol === 'nutricionista';
-
-      if (includeConsultas) {
-        baseRequests.push(
-          axios.get(`${baseUrl}/api/pacientes/${pacienteId}/consultas`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        );
-      }
-
-      const responses = await Promise.all(baseRequests);
+        axios.get(`${baseUrl}/api/pacientes/${pacienteId}/consultas`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
       const [perfilRes, turnosRes, planesRes, documentosRes, consultasRes] =
-        includeConsultas
-          ? responses
-          : [...responses, { data: { consultas: [] } }];
+        responses;
 
       aplicarDatos({
         contacto: perfilRes.data?.contacto,
@@ -109,7 +98,7 @@ export default function usePatientProfile(pacienteId) {
     } finally {
       setLoading(false);
     }
-  }, [aplicarDatos, baseUrl, pacienteId, shouldUseBackend, token, user?.rol]);
+  }, [aplicarDatos, baseUrl, pacienteId, shouldUseBackend, token]);
 
   useEffect(() => {
     fetchProfile();

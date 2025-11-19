@@ -209,12 +209,16 @@ export default function PatientProfilePage({ readOnly = false }) {
         setFeedback("Consulta eliminada correctamente.");
         deletedSuccessfully = true;
       } else {
-        setDeleteDialogError("No se pudo eliminar la consulta. Intentá nuevamente.");
+        setDeleteDialogError(
+          "No se pudo eliminar la consulta. Intentá nuevamente."
+        );
       }
     } catch (error) {
       const message =
         error?.response?.data?.error ??
-        (error instanceof Error ? error.message : "No se pudo eliminar la consulta.");
+        (error instanceof Error
+          ? error.message
+          : "No se pudo eliminar la consulta.");
       setDeleteDialogError(message);
     } finally {
       setDeletingConsulta(false);
@@ -518,19 +522,19 @@ export default function PatientProfilePage({ readOnly = false }) {
                         {consulta.estado}
                       </span>
                     </div>
+                    <button
+                      type="button"
+                      className="rounded-full border border-[#739273] px-3 py-1 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
+                      onClick={() =>
+                        navigate(
+                          `/consulta/${consulta.consulta_id}?paciente=${pacienteId}`
+                        )
+                      }
+                    >
+                      Ver
+                    </button>
                     {readOnly ? (
                       <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="rounded-full border border-[#739273] px-3 py-1 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
-                          onClick={() =>
-                            navigate(
-                              `/consulta/${consulta.consulta_id}?paciente=${pacienteId}`
-                            )
-                          }
-                        >
-                          Ver
-                        </button>
                         {canManageConsultas ? (
                           <>
                             <button
