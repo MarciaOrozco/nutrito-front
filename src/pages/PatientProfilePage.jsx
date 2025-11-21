@@ -77,7 +77,7 @@ export default function PatientProfilePage({ readOnly = false }) {
   } = useUploadDocuments();
 
   const { createConsulta, deleteConsulta } = useConsultas();
-  const { exportPlan } = usePlan();
+  const { exportPlan, deletePlan } = usePlan();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [consultaSeleccionada, setConsultaSeleccionada] = useState(null);
@@ -88,6 +88,9 @@ export default function PatientProfilePage({ readOnly = false }) {
   const [deletingConsulta, setDeletingConsulta] = useState(false);
   const [downloadingPlanId, setDownloadingPlanId] = useState(null);
   const [planDownloadError, setPlanDownloadError] = useState(null);
+  const [planDeleteId, setPlanDeleteId] = useState(null);
+  const [planDeleteLoading, setPlanDeleteLoading] = useState(false);
+  const [planDeleteError, setPlanDeleteError] = useState(null);
 
   const safePlanes = planes ?? [];
   const safeDocumentos = documentos ?? [];
@@ -149,6 +152,39 @@ export default function PatientProfilePage({ readOnly = false }) {
       setPlanDownloadError(message);
     } finally {
       setDownloadingPlanId(null);
+    }
+  };
+
+  const handleDeletePlan = (planId) => {
+    setPlanDeleteId(planId);
+    setPlanDeleteError(null);
+    setPlanDeleteLoading(false);
+  };
+
+  const closeDeletePlanDialog = () => {
+    if (planDeleteLoading) return;
+    setPlanDeleteId(null);
+    setPlanDeleteError(null);
+  };
+
+  const confirmarDeletePlan = async () => {
+    if (!planDeleteId || planDeleteLoading) return;
+    try {
+      setPlanDeleteLoading(true);
+      setPlanDeleteError(null);
+      await deletePlan(planDeleteId);
+      setFeedback("Plan eliminado correctamente.");
+      closeDeletePlanDialog();
+      refresh();
+    } catch (error) {
+      const message =
+        error?.response?.data?.error ??
+        (error instanceof Error
+          ? error.message
+          : "No se pudo eliminar el plan.");
+      setPlanDeleteError(message);
+    } finally {
+      setPlanDeleteLoading(false);
     }
   };
 
@@ -479,6 +515,16 @@ export default function PatientProfilePage({ readOnly = false }) {
                           >
                             Ver
                           </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-[#D9534F] px-3 py-1 text-xs font-semibold text-[#D9534F] transition hover:bg-[#D9534F] hover:text-white"
+                            onClick={() => handleDeletePlan(plan.id)}
+                            disabled={planDeleteLoading}
+                          >
+                            {planDeleteLoading && planDeleteId === plan.id
+                              ? "Eliminando..."
+                              : "Borrar"}
+                          </button>
                         </>
                       ) : null}
                       <button
@@ -522,19 +568,20 @@ export default function PatientProfilePage({ readOnly = false }) {
                         {consulta.estado}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      className="rounded-full border border-[#739273] px-3 py-1 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
-                      onClick={() =>
-                        navigate(
-                          `/consulta/${consulta.consulta_id}?paciente=${pacienteId}`
-                        )
-                      }
-                    >
-                      Ver
-                    </button>
+
                     {readOnly ? (
                       <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-[#739273] px-3 py-1 text-sm font-semibold text-[#739273] transition hover:bg-[#739273] hover:text-white"
+                          onClick={() =>
+                            navigate(
+                              `/consulta/${consulta.consulta_id}?paciente=${pacienteId}`
+                            )
+                          }
+                        >
+                          Ver
+                        </button>
                         {canManageConsultas ? (
                           <>
                             <button
@@ -622,6 +669,25 @@ export default function PatientProfilePage({ readOnly = false }) {
         {deleteDialogError ? (
           <p className="mt-3 text-sm text-red-500">{deleteDialogError}</p>
         ) : null}
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={Boolean(planDeleteId)}
+        title="¿Deseás eliminar este plan?"
+        description="Esta acción no se puede deshacer."
+        confirmLabel={planDeleteLoading ? "Eliminando..." : "Eliminar"}
+        confirmClassName="bg-[#D9534F] text-white"
+        onConfirm={confirmarDeletePlan}
+        onClose={closeDeletePlanDialog}
+        confirmDisabled={planDeleteLoading}
+        cancelDisabled={planDeleteLoading}
+      >
+        {planDeleteError ? (
+          <p className="text-sm text-[#D9534F]">{planDeleteError}</p>
+        ) : (
+          <p className="text-sm text-bark/70">
+            Al confirmar, el plan y sus datos asociados se eliminarán.
+          </p>
+        )}
       </ConfirmDialog>
     </section>
   );

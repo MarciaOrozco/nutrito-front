@@ -165,6 +165,19 @@ export default function usePlan() {
     return response.data;
   };
 
+  const deletePlan = async (planId) => {
+    if (!shouldUseBackend) {
+      return { success: true };
+    }
+
+    const response = await axios.delete(
+      `${baseUrl}/api/planes/${planId}`,
+      { headers: authHeaders },
+    );
+
+    return response.data;
+  };
+
   return {
     getPlan,
     createManualPlan,
@@ -173,5 +186,6 @@ export default function usePlan() {
     validatePlan,
     exportPlan,
     listPatientPlans,
+    deletePlan,
   };
 }
