@@ -8,24 +8,73 @@ import { useAuth } from "../auth/useAuth.js";
 import ScheduleSetupModal from "../components/ScheduleSetupModal.jsx";
 
 const DEFAULT_WEEKLY_SCHEDULE = [
-  { key: "monday", label: "Lunes", start: "09:00", end: "17:00", duration: "30", enabled: true },
-  { key: "tuesday", label: "Martes", start: "09:00", end: "17:00", duration: "30", enabled: true },
-  { key: "wednesday", label: "Miércoles", start: "09:00", end: "17:00", duration: "30", enabled: true },
-  { key: "thursday", label: "Jueves", start: "09:00", end: "17:00", duration: "30", enabled: true },
-  { key: "friday", label: "Viernes", start: "09:00", end: "17:00", duration: "30", enabled: true },
-  { key: "saturday", label: "Sábado", start: "09:00", end: "13:00", duration: "30", enabled: false },
-  { key: "sunday", label: "Domingo", start: "09:00", end: "13:00", duration: "30", enabled: false },
+  {
+    key: "monday",
+    label: "Lunes",
+    start: "09:00",
+    end: "17:00",
+    duration: "30",
+    enabled: true,
+  },
+  {
+    key: "tuesday",
+    label: "Martes",
+    start: "09:00",
+    end: "17:00",
+    duration: "30",
+    enabled: true,
+  },
+  {
+    key: "wednesday",
+    label: "Miércoles",
+    start: "09:00",
+    end: "17:00",
+    duration: "30",
+    enabled: true,
+  },
+  {
+    key: "thursday",
+    label: "Jueves",
+    start: "09:00",
+    end: "17:00",
+    duration: "30",
+    enabled: true,
+  },
+  {
+    key: "friday",
+    label: "Viernes",
+    start: "09:00",
+    end: "17:00",
+    duration: "30",
+    enabled: true,
+  },
+  {
+    key: "saturday",
+    label: "Sábado",
+    start: "09:00",
+    end: "13:00",
+    duration: "30",
+    enabled: false,
+  },
+  {
+    key: "sunday",
+    label: "Domingo",
+    start: "09:00",
+    end: "13:00",
+    duration: "30",
+    enabled: false,
+  },
 ];
 
 export default function ProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { profile, loading, error, source, hasReviews, fetchProfile, refetch } =
+  const { profile, loading, error, hasReviews, fetchProfile, refetch } =
     useNutritionistProfile();
   const { user, isAuthenticated } = useAuth();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [weeklySchedule, setWeeklySchedule] = useState(() =>
-    DEFAULT_WEEKLY_SCHEDULE.map((day) => ({ ...day })),
+    DEFAULT_WEEKLY_SCHEDULE.map((day) => ({ ...day }))
   );
 
   useEffect(() => {
@@ -37,7 +86,9 @@ export default function ProfilePage() {
     if (!id || !user?.nutricionistaId) return false;
     return String(user.nutricionistaId) === String(id);
   }, [id, isAuthenticated, user]);
-  const actionButtonLabel = isOwnProfile ? "Generar turnos" : "Agendar consulta";
+  const actionButtonLabel = isOwnProfile
+    ? "Generar turnos"
+    : "Agendar consulta";
 
   const handleSchedule = () => {
     navigate(`/agendar/${id}`);
@@ -53,20 +104,24 @@ export default function ProfilePage() {
 
   const handleToggleDayAvailability = (dayKey) => {
     setWeeklySchedule((prev) =>
-      prev.map((day) => (day.key === dayKey ? { ...day, enabled: !day.enabled } : day)),
+      prev.map((day) =>
+        day.key === dayKey ? { ...day, enabled: !day.enabled } : day
+      )
     );
   };
 
   const handleScheduleFieldChange = (dayKey, field, value) => {
     setWeeklySchedule((prev) =>
-      prev.map((day) => (day.key === dayKey ? { ...day, [field]: value } : day)),
+      prev.map((day) => (day.key === dayKey ? { ...day, [field]: value } : day))
     );
   };
 
   const handleScheduleSave = () => {
     const toastApi = window?.toast;
     if (toastApi && typeof toastApi.success === "function") {
-      toastApi.success("Guardamos esta configuración para tus próximos turnos.");
+      toastApi.success(
+        "Guardamos esta configuración para tus próximos turnos."
+      );
     } else if (typeof window?.alert === "function") {
       window.alert("Guardamos esta configuración para tus próximos turnos.");
     } else {
@@ -91,8 +146,6 @@ export default function ProfilePage() {
       ))}
     </div>
   );
-
-  const showFallbackNotice = source === "mock" && !loading;
 
   return (
     <section className="flex w-full flex-col gap-6">
@@ -128,13 +181,6 @@ export default function ProfilePage() {
               Volver a la búsqueda
             </Link>
           </div>
-        </div>
-      ) : null}
-
-      {showFallbackNotice ? (
-        <div className="rounded-2xl border border-sand bg-bone p-4 text-sm text-bark/70">
-          Mostramos información simulada mientras verificas la integración con
-          el backend real.
         </div>
       ) : null}
 

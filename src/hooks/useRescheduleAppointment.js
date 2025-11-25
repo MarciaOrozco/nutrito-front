@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../auth/useAuth.js';
+import { extractCalendarLink } from './useCreateAppointment.js';
 
 export default function useRescheduleAppointment() {
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ export default function useRescheduleAppointment() {
     if (!shouldUseBackend) {
       await new Promise((resolve) => setTimeout(resolve, 350));
       setLoading(false);
-      return { success: true };
+      return { success: true, calendarLink: null, icsContent: null };
     }
 
     if (!token) {
@@ -35,7 +36,7 @@ export default function useRescheduleAppointment() {
     }
 
     try {
-      await axios.put(
+      const response = await axios.put(
         `${baseUrl}/api/turnos/${turnoId}/reprogramar`,
         {
           nuevaFecha: fecha,
@@ -48,7 +49,11 @@ export default function useRescheduleAppointment() {
         },
       );
 
-      return { success: true };
+      const data = response?.data ?? {};
+      const calendarLink = data.calendarLink ?? extractCalendarLink(data.notificaciones);
+      const icsContent = data.icsContent ?? null;
+
+      return { success: true, calendarLink, icsContent };
     } catch (apiError) {
       const message =
         apiError instanceof Error && apiError.message

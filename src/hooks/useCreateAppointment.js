@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../auth/useAuth.js';
 
-const extractCalendarLink = (messages = []) => {
+export const extractCalendarLink = (messages = []) => {
   const line = messages.find((message) =>
     typeof message === 'string' && message.includes('https://calendar.google.com'),
   );
