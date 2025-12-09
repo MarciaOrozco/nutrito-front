@@ -12,6 +12,11 @@ import { useAuth } from "./auth/useAuth.js";
 import CreatePlanPage from "./pages/CreatePlanPage.jsx";
 import EditPlanPage from "./pages/EditPlanPage.jsx";
 import PreviewPlanPage from "./pages/PreviewPlanPage.jsx";
+import MembershipPage from "./pages/MembershipPage.tsx";
+import MembershipDetailPage from "./pages/MembershipDetailPage.tsx";
+import MembershipCheckoutPending from "./pages/MembershipCheckoutPending.tsx";
+import LandingPage from "./pages/LandingPage.tsx";
+import icon from "./assets/icon.png";
 
 function App() {
   const { isAuthenticated, logout, user } = useAuth();
@@ -22,9 +27,13 @@ function App() {
         <header className="border-b border-sand/80 bg-white">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sand text-2xl font-bold text-clay">
-                <Link to="/ "> N </Link>
-              </div>
+              <Link to="/">
+                <img
+                  src={icon}
+                  alt="Nutrito"
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+              </Link>
               <div>
                 <p className="text-sm uppercase tracking-widest text-bark/60">
                   Nutrito
@@ -92,7 +101,7 @@ function App() {
 
         <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10">
           <Routes>
-            <Route path="/" element={<Navigate to="/buscar" replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/buscar" element={<SearchPage />} />
             <Route path="/perfil/:id" element={<ProfilePage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -122,6 +131,18 @@ function App() {
               <Route
                 path="/previsualizar-plan/:planId"
                 element={<PreviewPlanPage />}
+              />
+              <Route
+                path="/nutricionista/membresia"
+                element={<MembershipPage />}
+              />
+              <Route
+                path="/nutricionista/membresia/detalle"
+                element={<MembershipDetailPage />}
+              />
+              <Route
+                path="/nutricionista/membresia/pago-pendiente"
+                element={<MembershipCheckoutPending />}
               />
             </Route>
           </Routes>

@@ -6,6 +6,7 @@ import ReviewCard from "../components/ReviewCard.jsx";
 import useNutritionistProfile from "../hooks/useNutritionistProfile.js";
 import { useAuth } from "../auth/useAuth.js";
 import ScheduleSetupModal from "../components/ScheduleSetupModal.jsx";
+import useSaveAvailability from "../hooks/useSaveAvailability.js";
 
 const DEFAULT_WEEKLY_SCHEDULE = [
   {
@@ -71,11 +72,26 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { profile, loading, error, hasReviews, fetchProfile, refetch } =
     useNutritionistProfile();
+  const {
+    saveAvailability,
+    loading: savingAvailability,
+    error: availabilityError,
+    resetError: resetAvailabilityError,
+  } = useSaveAvailability();
   const { user, isAuthenticated } = useAuth();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [weeklySchedule, setWeeklySchedule] = useState(() =>
     DEFAULT_WEEKLY_SCHEDULE.map((day) => ({ ...day }))
   );
+  const DAY_MAP = {
+    monday: "lunes",
+    tuesday: "martes",
+    wednesday: "miercoles",
+    thursday: "jueves",
+    friday: "viernes",
+    saturday: "sabado",
+    sunday: "domingo",
+  };
 
   useEffect(() => {
     fetchProfile(id);
@@ -116,18 +132,62 @@ export default function ProfilePage() {
     );
   };
 
-  const handleScheduleSave = () => {
-    const toastApi = window?.toast;
-    if (toastApi && typeof toastApi.success === "function") {
-      toastApi.success(
-        "Guardamos esta configuración para tus próximos turnos."
-      );
-    } else if (typeof window?.alert === "function") {
-      window.alert("Guardamos esta configuración para tus próximos turnos.");
-    } else {
-      console.log("Configuración de turnos lista:", weeklySchedule);
+  const handleScheduleSave = async () => {
+    if (savingAvailability) return;
+    resetAvailabilityError();
+
+    const rangos = weeklySchedule
+      .filter((day) => day.enabled && day.start && day.end)
+      .map((day) => ({
+        diaSemana: DAY_MAP[day.key] ?? day.key,
+        horaInicio: day.start,
+        horaFin: day.end,
+        intervaloMinutos: Number(day.duration) || 30,
+      }));
+
+    if (!rangos.length) {
+      const toastApi = window?.toast;
+      if (toastApi?.error) {
+        toastApi.error(
+          "Seleccioná al menos un día con horario para guardar disponibilidad."
+        );
+      } else {
+        window?.alert?.(
+          "Seleccioná al menos un día con horario para guardar disponibilidad."
+        );
+      }
+      return;
     }
-    setIsScheduleModalOpen(false);
+
+    const targetNutriId = user?.nutricionistaId ?? (id ? Number(id) : null);
+    if (!targetNutriId) {
+      window?.alert?.(
+        "No encontramos tu identificador de profesional. Reingresá a tu cuenta."
+      );
+      return;
+    }
+
+    const result = await saveAvailability({
+      nutricionistaId: targetNutriId,
+      rangos,
+    });
+
+    if (result.success) {
+      const toastApi = window?.toast;
+      if (toastApi?.success) {
+        toastApi.success("Disponibilidad actualizada con éxito.");
+      } else {
+        window?.alert?.("Disponibilidad actualizada con éxito.");
+      }
+      setIsScheduleModalOpen(false);
+    } else if (availabilityError) {
+      const toastApi = window?.toast;
+      if (toastApi?.error) {
+        toastApi.error(availabilityError);
+      } else {
+        window?.alert?.(availabilityError);
+      }
+    }
   };
 
   const closeScheduleModal = () => setIsScheduleModalOpen(false);

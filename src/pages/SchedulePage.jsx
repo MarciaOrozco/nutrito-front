@@ -75,7 +75,10 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!nutricionistaId || !selectedDate) return;
-    fetchAvailability({ nutricionistaId, date: selectedDate });
+    fetchAvailability({
+      nutricionistaId,
+      date: selectedDate,
+    });
   }, [nutricionistaId, selectedDate, fetchAvailability]);
 
   useEffect(() => {

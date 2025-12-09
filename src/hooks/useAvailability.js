@@ -31,7 +31,7 @@ export default function useAvailability() {
   const { token } = useAuth();
 
   const fetchAvailability = useCallback(
-    async ({ nutricionistaId, date }) => {
+    async ({ nutricionistaId, date, intervalMinutes }) => {
       if (!nutricionistaId || !date) {
         setSlots([]);
         return;
@@ -61,7 +61,10 @@ export default function useAvailability() {
         const response = await axios.get(
           `${baseUrl}/api/turnos/disponibles/${nutricionistaId}`,
           {
-            params: { fecha: date },
+            params: {
+              fecha: date,
+              intervalo: intervalMinutes ? String(intervalMinutes) : undefined,
+            },
             timeout: 5000,
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           }

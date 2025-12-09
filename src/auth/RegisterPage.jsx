@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./useAuth.js";
 
@@ -6,18 +6,29 @@ export default function RegisterPage() {
   const { register, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
   const [formValues, setFormValues] = useState({
     nombre: "",
     apellido: "",
-    email: "",
+    email: params.get("email") ?? "",
     password: "",
     telefono: "",
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const token = params.get("token");
 
-  const nextPath =
-    new URLSearchParams(location.search).get("next") ?? "/mi-perfil";
+  const nextPath = params.get("next") ?? "/mi-perfil";
+
+  useEffect(() => {
+    const emailParam = params.get("email");
+    if (emailParam) {
+      setFormValues((prev) => ({ ...prev, email: emailParam }));
+    }
+  }, [params]);
 
   useEffect(() => {
     if (isAuthenticated && !loading) {
@@ -34,9 +45,6 @@ export default function RegisterPage() {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
-
-    const params = new URLSearchParams(location.search);
-    const token = params.get("token");
 
     const result = await register({
       ...formValues,
@@ -60,6 +68,12 @@ export default function RegisterPage() {
           Registrate para reservar consultas y acceder a tus planes
           personalizados.
         </p>
+        {token ? (
+          <p className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+            Esta invitación está asociada a <strong>{formValues.email}</strong>.
+            Completa tu registro para activar tu cuenta.
+          </p>
+        ) : null}
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -87,18 +101,19 @@ export default function RegisterPage() {
             </label>
           </div>
 
-          <label className="flex flex-col gap-2 text-sm font-medium text-bark">
-            Correo electrónico
-            <input
-              name="email"
-              type="email"
-              required
-              value={formValues.email}
-              onChange={handleChange}
-              className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
-              placeholder="usuario@nutrito.com"
-            />
-          </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-bark">
+              Correo electrónico
+              <input
+                name="email"
+                type="email"
+                required
+                value={formValues.email}
+                onChange={handleChange}
+                disabled={Boolean(token)}
+                className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
+                placeholder="usuario@nutrito.com"
+              />
+            </label>
 
           <label className="flex flex-col gap-2 text-sm font-medium text-bark">
             Teléfono (opcional)
