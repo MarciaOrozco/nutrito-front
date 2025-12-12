@@ -27,7 +27,7 @@ function App() {
         <header className="border-b border-sand/80 bg-white">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
             <div className="flex items-center gap-3">
-              <Link to="/">
+              <Link to="/buscar">
                 <img
                   src={icon}
                   alt="Nutrito"
