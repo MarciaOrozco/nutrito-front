@@ -10,6 +10,7 @@ import EvolucionChart from "../components/consultas/EvolucionChart.jsx";
 import ExportForm from "../components/consultas/ExportForm.jsx";
 import ProgramarProximaCita from "../components/consultas/ProgramarProximaCita.jsx";
 import useConsultas from "../hooks/useConsultas.js";
+import { useAuth } from "../auth/useAuth.js";
 
 const tabs = [
   { id: "informacion", label: "Información" },
@@ -55,6 +56,9 @@ export default function ConsultaPage() {
   const pacienteId = search.get("paciente");
   const { getConsulta, updateConsulta, uploadDocuments, exportConsulta } =
     useConsultas();
+  const { user } = useAuth();
+  const canEdit = user?.rol === "nutricionista";
+  const readOnly = !canEdit;
 
   const [activeTab, setActiveTab] = useState("informacion");
   const [data, setData] = useState(defaultData);
@@ -85,10 +89,12 @@ export default function ConsultaPage() {
   }, [consultaId]);
 
   const handleUpdate = (partial) => {
+    if (readOnly) return;
     setData((prev) => ({ ...prev, ...partial }));
   };
 
   const handleSave = async () => {
+    if (!canEdit) return;
     try {
       const payload = editableFields.reduce((acc, field) => {
         if (data[field] !== undefined) {
@@ -105,6 +111,7 @@ export default function ConsultaPage() {
   };
 
   const handleUploadDocuments = async (files) => {
+    if (readOnly) return;
     try {
       const response = await uploadDocuments(consultaId, files);
       setDocumentos((prev) => [...prev, ...response.documentos]);
@@ -167,13 +174,15 @@ export default function ConsultaPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            Guardar
-          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={handleSave}
+              className="rounded-full bg-[#739273] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Guardar
+            </button>
+          ) : null}
           <Link
             to={pacienteId ? `/paciente/${pacienteId}` : "/panel-profesional"}
             className="rounded-full border border-sand px-5 py-2 text-sm font-semibold text-bark/70 transition hover:border-clay hover:text-clay"
@@ -193,22 +202,35 @@ export default function ConsultaPage() {
 
       <div className="rounded-3xl bg-white p-6 shadow-soft">
         {activeTab === "informacion" ? (
-          <ConsultaInfoForm data={data} onChange={handleUpdate} />
+          <ConsultaInfoForm
+            data={data}
+            onChange={handleUpdate}
+            readOnly={readOnly}
+          />
         ) : null}
         {activeTab === "motivo" ? (
-          <ConsultaMotivoForm data={data} onChange={handleUpdate} />
+          <ConsultaMotivoForm
+            data={data}
+            onChange={handleUpdate}
+            readOnly={readOnly}
+          />
         ) : null}
         {activeTab === "medidas" ? (
-          <MedidasForm data={data} onChange={handleUpdate} />
+          <MedidasForm
+            data={data}
+            onChange={handleUpdate}
+            readOnly={readOnly}
+          />
         ) : null}
         {activeTab === "documentos" ? (
           <DocumentosForm
             documentos={documentos}
             onUpload={handleUploadDocuments}
+            readOnly={readOnly}
           />
         ) : null}
         {activeTab === "notas" ? (
-          <NotasForm data={data} onChange={handleUpdate} />
+          <NotasForm data={data} onChange={handleUpdate} readOnly={readOnly} />
         ) : null}
         {activeTab === "evolucion" ? (
           <EvolucionChart pacienteId={pacienteId} />
@@ -220,12 +242,16 @@ export default function ConsultaPage() {
               onToggle={toggleSection}
               onExport={handleExport}
             />
-            <ProgramarProximaCita
-              pacienteId={data?.paciente_id ?? pacienteId ?? null}
-              nutricionistaId={data?.nutricionista_id ?? null}
-              consultaId={consultaId ? Number(consultaId) : null}
-              onSuccess={() => setFeedback("Próxima cita programada correctamente")}
-            />
+            {canEdit ? (
+              <ProgramarProximaCita
+                pacienteId={data?.paciente_id ?? pacienteId ?? null}
+                nutricionistaId={data?.nutricionista_id ?? null}
+                consultaId={consultaId ? Number(consultaId) : null}
+                onSuccess={() =>
+                  setFeedback("Próxima cita programada correctamente")
+                }
+              />
+            ) : null}
           </div>
         ) : null}
       </div>

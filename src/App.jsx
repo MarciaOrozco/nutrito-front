@@ -122,7 +122,6 @@ function App() {
                 path="/paciente/:pacienteId"
                 element={<PatientProfilePage readOnly />}
               />
-              <Route path="/consulta/:consultaId" element={<ConsultaPage />} />
               <Route
                 path="/crear-plan/:pacienteId"
                 element={<CreatePlanPage />}
@@ -144,6 +143,11 @@ function App() {
                 path="/nutricionista/membresia/pago-pendiente"
                 element={<MembershipCheckoutPending />}
               />
+            </Route>
+            <Route
+              element={<PrivateRoute roles={["nutricionista", "paciente"]} />}
+            >
+              <Route path="/consulta/:consultaId" element={<ConsultaPage />} />
             </Route>
           </Routes>
         </main>

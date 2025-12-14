@@ -6,9 +6,10 @@ const computeImc = (peso, altura) => {
   return Number.isFinite(value) ? value.toFixed(2) : '';
 };
 
-export default function MedidasForm({ data, onChange }) {
+export default function MedidasForm({ data, onChange, readOnly = false }) {
   const handleChange = (event) => {
     const { name, value } = event.target;
+    if (readOnly) return;
     const next = { [name]: value };
     if (name === 'peso' || name === 'altura') {
       const peso = name === 'peso' ? value : data.peso;
@@ -39,7 +40,8 @@ export default function MedidasForm({ data, onChange }) {
             step="any"
             value={data[field.name] ?? ''}
             onChange={handleChange}
-            readOnly={field.readOnly}
+            readOnly={field.readOnly || readOnly}
+            disabled={readOnly && !field.readOnly}
             className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
           />
         </label>
@@ -50,6 +52,7 @@ export default function MedidasForm({ data, onChange }) {
           name="observaciones_medidas"
           value={data.observaciones_medidas ?? ''}
           onChange={handleChange}
+          readOnly={readOnly}
           rows={3}
           className="rounded-2xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
         />

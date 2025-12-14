@@ -59,9 +59,6 @@ export default function PatientProfilePage({ readOnly = false }) {
     ? patientHookForNutri.refresh
     : patientHookForPatient.refresh;
 
-  const canManageOwnProfile = !readOnly;
-  const canManageConsultas = readOnly;
-
   const {
     cancelAppointment,
     loading: cancelLoading,
@@ -95,6 +92,10 @@ export default function PatientProfilePage({ readOnly = false }) {
   const safePlanes = planes ?? [];
   const safeDocumentos = documentos ?? [];
   const safeConsultas = consultas ?? [];
+
+  const canManageOwnProfile = !readOnly;
+  const canManageConsultas = readOnly;
+  const canViewConsultas = Boolean(safeConsultas.length);
 
   const closeCancelDialog = () => {
     setShowCancelDialog(false);
@@ -569,7 +570,7 @@ export default function PatientProfilePage({ readOnly = false }) {
                       </span>
                     </div>
 
-                    {readOnly ? (
+                    {canViewConsultas ? (
                       <div className="flex gap-2">
                         <button
                           type="button"

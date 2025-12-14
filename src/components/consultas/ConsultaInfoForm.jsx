@@ -1,6 +1,7 @@
-export default function ConsultaInfoForm({ data, onChange }) {
+export default function ConsultaInfoForm({ data, onChange, readOnly = false }) {
   const handleChange = (event) => {
     const { name, value } = event.target;
+    if (readOnly) return;
     onChange({ [name]: value });
   };
 
@@ -13,6 +14,7 @@ export default function ConsultaInfoForm({ data, onChange }) {
           name="fecha_consulta"
           value={data.fecha_consulta?.slice(0, 10) ?? ''}
           onChange={handleChange}
+          disabled={readOnly}
           className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
         />
       </label>
@@ -22,6 +24,7 @@ export default function ConsultaInfoForm({ data, onChange }) {
           name="estado"
           value={data.estado ?? 'borrador'}
           onChange={handleChange}
+          disabled={readOnly}
           className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
         >
           <option value="borrador">Borrador</option>

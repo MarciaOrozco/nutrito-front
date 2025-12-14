@@ -1,6 +1,7 @@
-export default function DocumentosForm({ documentos, onUpload }) {
+export default function DocumentosForm({ documentos, onUpload, readOnly = false }) {
   const handleChange = (event) => {
     const { files } = event.target;
+    if (readOnly) return;
     if (files && files.length) {
       onUpload(files);
       event.target.value = '';
@@ -20,15 +21,17 @@ export default function DocumentosForm({ documentos, onUpload }) {
           <p>No hay documentos asociados.</p>
         )}
       </div>
-      <label className="flex flex-col gap-2 text-sm text-bark">
-        Adjuntar archivos
-        <input
-          type="file"
-          multiple
-          onChange={handleChange}
-          className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
-        />
-      </label>
+      {readOnly ? null : (
+        <label className="flex flex-col gap-2 text-sm text-bark">
+          Adjuntar archivos
+          <input
+            type="file"
+            multiple
+            onChange={handleChange}
+            className="rounded-xl border border-sand bg-bone px-4 py-3 text-sm text-bark outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/30"
+          />
+        </label>
+      )}
     </div>
   );
 }
